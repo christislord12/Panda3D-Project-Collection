@@ -1,0 +1,24 @@
+//Cg
+
+void vshader(float4 vtx_position : POSITION,
+             float4 vtx_color: COLOR,
+             float4 vtx_normal : NORMAL, 
+             out float4 l_position : POSITION,
+             out float4 l_color0 : COLOR0,
+             out float3 l_normal : TEXCOORD0,
+             uniform float4x4 itp_modelview,
+             uniform float4x4 mat_modelproj)
+{
+  l_position = mul(mat_modelproj, vtx_position);
+  //l_color0 = vtx_color;
+  l_normal = normalize(mul(itp_modelview, vtx_normal));
+}
+ 
+void fshader(float4 l_color0 : COLOR0,
+             float3 l_normal : TEXCOORD0,
+             float3 l_smooth : TEXCOORD1,
+             //uniform float4 mspos_light,
+             out float4 o_color : COLOR)
+{
+  o_color=float4(l_normal, 1);
+}

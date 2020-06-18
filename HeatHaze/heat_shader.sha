@@ -1,0 +1,30 @@
+//Cg
+ 
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    uniform float4 texpad_color,
+    uniform float4x4 mat_modelproj)
+{
+    l_position=mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_color.xy + texpad_color.xy;
+}
+ 
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_color : TEXUNIT0,
+             uniform sampler2D k_distort : TEXUNIT1,
+             uniform sampler2D k_depth : TEXUNIT2,
+             uniform sampler2D k_maindepth : TEXUNIT3)
+{
+    float DIST_POWER = -0.05 ;
+    float4 d = tex2D(k_distort, l_texcoord0);
+    float4 z = tex2D(k_depth, l_texcoord0);
+    float4 z2 = tex2D(k_maindepth, l_texcoord0);
+    //float4 c = tex2D(k_color, l_texcoord0 + d.xy * -0.05 * ((z.x - 0.00001) < z2.x));
+    float4 c = tex2D(k_color, l_texcoord0 + d.xy * DIST_POWER * (z.x - 0.00001 < z2.x) / z2.x);
+    o_color  = c;
+
+}

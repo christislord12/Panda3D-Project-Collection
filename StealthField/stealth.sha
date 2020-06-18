@@ -1,0 +1,42 @@
+//Cg
+ 
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    uniform float4 texpad_maincolor,
+    uniform float4x4 mat_modelproj)
+{
+    l_position=mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_maincolor.xy + texpad_maincolor.xy;
+}
+ 
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float3 o_color : COLOR,
+             uniform sampler2D k_maincolor : TEXUNIT0,
+             uniform sampler2D k_distort : TEXUNIT1,
+             uniform sampler2D k_depth : TEXUNIT2,
+             uniform sampler2D k_maindepth : TEXUNIT3,
+             uniform sampler2D k_color : TEXUNIT4,
+             uniform sampler2D k_colormask : TEXUNIT5,
+             uniform float k_blend)
+{
+    float4 d = tex2D(k_distort, l_texcoord0);
+    float z = tex2D(k_depth, l_texcoord0).x;
+    float z2 = tex2D(k_maindepth, l_texcoord0).x;
+    //float mask_val = saturate(2 - pow(tex2D(k_colormask, l_texcoord0).x + k_blend * 2, 2));
+    int mask_val = (tex2D(k_colormask, l_texcoord0 * 2).x > k_blend);
+    float4 mc = tex2D(k_maincolor, l_texcoord0 + d * 0.2 * ((z - 0.00001) < z2));
+    float4 cc = tex2D(k_color, l_texcoord0) * ((z - 0.00001) < z2);
+    cc.a *= mask_val;
+    // To have a useless filter that outputs the original view
+    // without changing anything, just use :
+    //o_color  = c;
+ 
+    // basic black and white effet
+    //float moyenne = (c.x + c.y + c.z)/3;
+    //o_color = float4(moyenne, moyenne, moyenne, 1);
+    o_color = mc.xyz * (1.0-cc.a) + cc.xyz * cc.a;
+    //o_color = mc + cc;
+}
