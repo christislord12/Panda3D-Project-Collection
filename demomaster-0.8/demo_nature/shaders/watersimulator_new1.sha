@@ -1,0 +1,105 @@
+//Cg
+// clcheung Apr 2009
+// simulate water surface and save the water mesh height map and normal information in a texture
+// reference Vertex Texture Fetch Water demo in NVIDIA SDK 9.5
+
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+	in float2 vtx_texcoord0 : TEXCOORD0,
+    out float2 l_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+	l_texcoord0 = vtx_texcoord0;
+}
+
+int inrange(float2 v)
+{
+	return (v.x >=0.0 && v.x <= 1 && v.y >= 0 && v.y <= 1);
+}
+void fshader(
+	in float2 l_texcoord0 : TEXCOORD0,
+    in uniform sampler2D k_tex0 : TEXUNIT0,
+    in uniform sampler2D k_tex1 : TEXUNIT1,
+    in uniform sampler2D k_dampening : TEXUNIT2,
+	//in uniform float4 k_deltaTimeSquared,
+	in float4 uniform k_param1,
+    out float4 o_color : COLOR)
+{
+  float vx = 1.1/k_param1.x;
+  float vy = 1.1/k_param1.y;
+  //float2 psSimulationGridSize = float2(v, v);
+  float fh = 10;
+
+  float2 psSimulationTexCoordDelta_x0y1 = float2(-vx,0);
+  float2 psSimulationTexCoordDelta_x2y1 = float2(vx,0);
+  float2 psSimulationTexCoordDelta_x1y0 = float2(0,-vy);
+  float2 psSimulationTexCoordDelta_x1y2 = float2(0,vy);
+  float height_x1y1,height_x0y1,height_x2y1,height_x1y0,height_x1y2;
+  float2 x;
+  height_x1y1 = tex2D(k_tex0, l_texcoord0).x;
+  height_x1y1 = (height_x1y1 -0.5) * 2;
+
+  x = l_texcoord0 + psSimulationTexCoordDelta_x0y1;
+  if (inrange(x) > 0) {
+	height_x0y1 = tex2D(k_tex0, x).x;
+	height_x0y1 = (height_x0y1 -0.5) * 2;
+  } else {
+	height_x0y1 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x2y1;
+  if (inrange(x)) {
+	height_x2y1 = tex2D(k_tex0, x).x;
+	height_x2y1 = (height_x2y1 -0.5) * 2;
+  } else {
+	height_x2y1 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x1y0;
+  if (inrange(x) > 0) {
+	height_x1y0 = tex2D(k_tex0, x).x;
+	height_x1y0 = (height_x1y0 -0.5) * 2;
+  } else {
+	height_x1y0 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x1y2;
+  if (inrange(x) > 0) {
+	height_x1y2 = tex2D(k_tex0, x).x;
+	height_x1y2 = (height_x1y2 -0.5) * 2;
+  } else {
+	height_x1y2 = 0;
+  }
+
+  float previousHeight = tex2D(k_tex1, l_texcoord0).x;
+  previousHeight = (previousHeight -0.5) * 2;
+  float4 dampening=tex2D(k_dampening, l_texcoord0).x;
+  float psSimulationWaveSpeedSquared = k_param1.z; //30;
+  float acceleration = dampening * psSimulationWaveSpeedSquared * (height_x0y1 + height_x2y1 + height_x1y0 + height_x1y2 - 4.0 * height_x1y1);
+
+
+  // Do Verlet integration
+  float2 psSimulationPositionWeighting = float2(1.99,0.99);
+  //float2 psSimulationPositionWeighting = float2(1.2,0.99);
+  float psSimulationOneHalfTimesDeltaTimeSquared = 0.01;
+  float newHeight = psSimulationPositionWeighting.x * height_x1y1 -
+              psSimulationPositionWeighting.y * previousHeight +
+              psSimulationOneHalfTimesDeltaTimeSquared * acceleration;
+			  //50 * k_deltaTimeSquared.x * acceleration;
+  newHeight *= saturate(dampening+0.5) * k_param1.w; // 0.99
+  newHeight = saturate(newHeight/2 + 0.5);
+
+  // Calculate the normal
+  //float3 dzdx = float3(psSimulationGridSize.x, 0.0, (height_x2y1 - height_x1y1) * fh);
+  //float3 dzdy = float3(0.0, -psSimulationGridSize.y, (height_x1y2 - height_x1y1) * fh);
+  //float3 normal = cross(dzdx, dzdy);
+  //normal = (normalize(normal)/2) + 0.5;
+  //o_color = float4(newHeight,newHeight,newHeight,1);
+  //o_color.w = newHeight;
+  //o_color.xyz = normal.xyz;
+  o_color.y = saturate((height_x2y1 - height_x1y1)/4 + 0.5);
+  o_color.z = saturate((height_x1y2 - height_x1y1)/4 + 0.5);
+  o_color.x = newHeight;
+  o_color.w = 1;
+//  o_color = tex2D(k_dampening, l_texcoord0);
+//  o_color = float4(1,0,0,1);
+}

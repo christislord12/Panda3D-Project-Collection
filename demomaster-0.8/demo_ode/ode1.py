@@ -1,0 +1,633 @@
+
+from random import randint, random
+import math, sys, colorsys, threading
+import odebase
+import demobase, camerabase
+
+from pandac.PandaModules import Filename
+from pandac.PandaModules import TextNode
+from direct.directtools.DirectGeometry import LineNodePath
+from pandac.PandaModules import Vec3,Vec4,Point3,Texture,TextureStage,VBase3,Quat
+from pandac.PandaModules import RigidBodyCombiner, NodePath
+from pandac.PandaModules import OdeQuadTreeSpace, OdeHashSpace
+# particle
+from direct.particles.Particles import Particles
+from direct.particles.ParticleEffect import ParticleEffect
+
+
+def scalp(vec, scal):
+    vec[0] *= scal
+    vec[1] *= scal
+    vec[2] *= scal
+
+####################################################################################################################
+class ODEDemo(demobase.DemoBase):
+    """
+    ODE - Demo 1
+    Several simple demos on ODE.
+    """
+    def __init__(self, parent):
+        demobase.DemoBase.__init__(self, parent)
+        self.createEffect = True
+
+
+    def InitScene(self):
+        self.textnode = render2d.attachNewNode("textnode")
+        self.numnode =  demobase.addInstructions(0.8,0.9,"",TextNode.ARight, self.textnode)
+        #self.odeworld = self.parent.odeworld
+        self.odeworld = myODEWorld()
+        if not self.odeworld.supportEvent:
+            # this is only for version 1.5.4, in version 1.6 better ode event is supported
+            self.odeworld.setNotifier(self)
+        world = self.odeworld.world
+        world.setGravity(0, 0, -10)
+
+        # set up the surface table, in this world, there is only one type of surface
+        # The surface table is needed for autoCollide
+        world.initSurfaceTable(1)
+        world.setSurfaceEntry(0, 0, 150, 0.0, 9.1, 0.9, 0.00001, 0.0, 0.002)
+        #world.setSurfaceEntry(0, 0, 150, 0.8, 1, 0.9, 0.00001, 0.0, 0.002)
+
+        # debug
+        space = OdeHashSpace()
+        space.setLevels(0,2)
+        #space = OdeQuadTreeSpace((0, 0, 0), (50, 50, 50), 3)
+        self.odeworld.InitODEwithSpace(space)
+
+        self.demo2 = False
+        self.demoShootmode = False
+        self.createEffectMode = False
+        self.holder = None
+        self.objects = []
+
+        self.att_shaderoption = demobase.Att_AutoShaderOption(False, "Shader:AutoShader", True)
+        self.LoadModels()
+        self.LoadLights()
+        self.SetupCamera()
+
+        self.att_Demo1NrObjectToDrop = demobase.Att_IntRange(False, None, 1,50,20, NodeName="Demo1:Number of Objects")
+        self.att_Demo1Density = demobase.Att_FloatRange(False, None, 0.1,10,1, 1, NodeName="Demo1:Object Density")
+        self.att_Demo2NrObjectToDrop = demobase.Att_IntRange(False, None, 1,50,30, NodeName="Demo2:Number of Objects")
+        self.att_Demo2Density = demobase.Att_FloatRange(False, None, 0.1,10, 1, 1, NodeName="Demo2:Object Density")
+        self.att_Demo3Force = demobase.Att_FloatRange(False, None, 10000,500000, 100000, 0, NodeName="Demo3:Force")
+        self.att_Demo4ExplodeForce = demobase.Att_IntRange(False,None, 0,6000,4000, NodeName="Demo4:Explosion Force")
+
+
+        #self.odeworld.EnableODETask(2)
+        taskMgr.doMethodLater(self.odeworld.StepSize*0.9, self.odeworld.simulationTask, "ODESimulation")
+
+
+
+    def SetupCamera(self):
+        # camera control is only for sbooting mode
+        self.att_cameracontrol = camerabase.Att_CameraControllerByMouse(self.parent, False, "Camera:Camera Control", \
+                     [-59,-59,5], [59,59,45], [-15,15, 0], [-20,20,0], Vec3(55,-55,20), rate=0.02)
+        #self.att_cameracontrol.DefaultController(moveup=None,movedown=None,moveleft=None,moveright=None,fovup=None,fovdown=None,escape=None)
+        self.att_cameracontrol.Stop()
+        self.att_cameracontrol.LockPosition(self.defaultpos)
+        self.SetCameraPos(self.defaultpos, Vec3(0,0,self.defaultpos[2]))
+
+    def ClearScene(self):
+        if not self.odeworld.supportEvent:
+            self.odeworld.removeNotifier(self)
+        taskMgr.remove("ODESimulation")
+
+        self.att_cameracontrol.Destroy()
+        self.textnode.removeNode()
+        self.ClearObjects()
+        self.odeworld.DestroyAllObjects()
+        taskMgr.remove("myDemo2")
+        base.camera.detachNode()
+
+        # remove all lights
+        self.DestroyAllLights()
+
+        #render.getChildren().detach()
+        render.removeChildren()
+        base.camera.reparentTo(render)
+
+
+    def LoadModels(self):
+        base.setBackgroundColor(0,0,0)
+
+        box = loader.loadModel("models/box")
+        odebase.MakeRoom(render,box,self.odeworld, 1,1,
+            [-20.0,-20.0,0.0], [20.0,20.0,30.0], 5.0, 5)
+
+        self.roomheight = 30
+        self.defaultpos = Vec3(0,-60,self.roomheight/2)
+
+        room = loader.loadModel("models/room5")
+        room.reparentTo(render)
+
+        room.setScale(4,4,3)
+        room.setPos(-20,20,0)
+        #room.flattenLight()
+        #self.odeworld.AddObject(odebase.ODEtrimesh(self.odeworld,self.odeworld.space,room, None, 0, 0, 1, 1))
+        self.room = room
+
+        self.preload = loader.loadModel( 'models/explosionRing.egg' )
+
+        rbc = RigidBodyCombiner("rbc")
+        self.rbcnp = NodePath(rbc)
+        self.rbcnp.reparentTo(render)
+
+
+    def LoadLights(self):
+        # these variable can be controlled by user thru wxUI
+        self.att_ambinentLight = demobase.Att_ambientLightNode(False, "Light:Ambient Light", Vec4(.35, .35, .35, 1 ))
+        self.att_ambinentLight.setLight(render)
+        self.att_directionalLight = demobase.Att_directionalLightNode(False, "Light:Directional Light", Vec4(.4, .4, .4, 1 ),  Vec3( 1, 1, -2 ))
+        self.att_directionalLight.setLight(render)
+        #render.setShaderInput("light", self.att_directionalLight.light)
+
+        self.att_spotLight = demobase.Att_spotLightNode(False, "Light:Spotlight",  Vec4( .45, .45, .45, 1 ), 88, 28.0, Vec3(0,-20,10), Point3(0,0,10), attenuation=Vec3( 1, 0.0, 0.0 ))
+        self.att_spotLight.setLight(render)
+        self.att_spotLightGun = demobase.Att_spotLightNode(False, "Light:Gun",  Vec4( 1, 0., 0, 1 ), 1, 28.0, Vec3(0,0,0), Point3(0,20,0), attenuation=Vec3( 0.0, 0.0, 0.0 ))
+        self.att_spotLightGun.setLight(render)
+        self.att_spotLightGun.light.reparentTo(base.camera)
+        self.att_spotLightGun.setLightOn(None,False)
+
+        if False:
+            self.lightpivot = render.attachNewNode("lightpivot")
+            self.lightpivot.setPos(0,0,15)
+            self.lightpivot.hprInterval(10,Point3(360,0,0)).loop()
+            self.att_pointLight = demobase.Att_pointLightNode(False, "Light:Point Light",  \
+                Vec4( 1, 1, 1, 1 ), Vec3(13,0,0), attenuation=Vec3( 0.7, 0.05, 0.0 ), node=self.lightpivot, fBulb=True)
+            #room.setLight(self.att_pointLight.light)
+            self.att_pointLight.setLight(render)
+            render.setShaderInput("light", self.att_pointLight.light)
+
+
+
+    # this is only for version 1.5.4, in version 1.6 better ode event is supported
+    def odeEvent(self, collisions):
+        objects = self.odeworld.space.getNumGeoms()
+        # count collisions, skip those lying on floor
+        count=0
+        for c in collisions:
+            z = c[2]
+            if z > 1:
+                count+=1
+            if self.createEffectMode and self.holder == None:
+                pos = self.monkeynode.getPos()
+                if abs((c-pos).length()) < 5:
+                    c = c-pos
+                    #print c, c.length()
+                    # near the monkey
+                    #self.holder = self.smokeEffect(self.monkeynode, c)
+                    self.explosionSequence(self.monkeynode, c)
+                    #self.explosionSequence(render, c)
+
+        self.numnode.setText("Collisions %d ODE Geom: %d" % (count, objects))
+        pass
+
+    def Demo1(self):
+        """Drop Balls/Boxes"""
+        self.odeworld.world.setSurfaceEntry(0, 0, 150, 0.2, 1, 0.9, 0.00001, 0.0, 0.002)
+
+        #ball = loader.loadModel("models/ball")
+
+        x = loader.loadModel("models/cube")
+        x.setScale(3)
+        wood = loader.loadTexture("models/wood.png")
+        wood.setWrapU(Texture.WMClamp)
+        wood.setWrapV(Texture.WMClamp)
+
+        ts = TextureStage("ts")
+        #ts.setMode(TextureStage.MDecal)
+        ts.setSort(1)
+        x.setTexture(ts, wood)
+
+        #debug
+        b = loader.loadModel("models/s2")
+        #b = loader.loadModel("models/ball")
+        b.setScale(3)
+        nops = loader.loadTexture("models/nops.png")
+        nops.setWrapU(Texture.WMRepeat)
+        nops.setWrapV(Texture.WMRepeat)
+        #b.clearTexture()
+        b.setTexture(ts, nops)
+
+        y = loader.loadModel("models/cylinder")
+        y.setScale(1)
+
+        #ball.setTextureOff()
+        r = 0.5
+        density = self.att_Demo1Density.v
+        nrballs = self.att_Demo1NrObjectToDrop.v
+
+        root = self.rbcnp
+        for i in range(nrballs): #randint(15, 30)):
+            # Setup the geometry
+            v = randint(0,1)
+            if v == 0:
+                bNP = x.copyTo(root)
+            elif v ==2:
+                bNP = y.copyTo(root)
+            else:
+                bNP = b.copyTo(root)
+            bNP.setPos(randint(-10, 10), randint(-10, 10), self.roomheight/2 + randint(-5,5))
+            #bNP.setColor(random(), random(), random(), 1)
+            bNP.setHpr(randint(-45, 45), randint(-45, 45), randint(-45, 45))
+            if v == 0:
+                b_ode = odebase.ODEbox(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+            elif v == 2:
+                b_ode = odebase.ODEcylinder(self.odeworld.world, self.odeworld.space, bNP, None, density, 3, 1, 1, 0, 1, 1)
+                #b_ode = odebase.ODECappedCylinder(self.odeworld.world, self.odeworld.space, bNP, None, density, 3, 1, 1, 0, 1, 1)
+            else:
+                b_ode = odebase.ODEsphere(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+            self.odeworld.AddObject(b_ode)
+            self.objects.append(b_ode)
+
+        self.rbcnp.node().collect()
+
+    def Demo7(self):
+        """Clear Objects"""
+        self.ClearObjects()
+
+    def ClearObjects(self):
+        self.setShootingMode(False)
+        #if self.holder != None:
+            #self.particle.disable()
+            #self.particle.cleanup()
+            #self.holder.removeNode()
+            #self.holder = None
+        # clear the old ones
+        for b_ode in self.objects:
+            self.odeworld.RemoveObject(b_ode)
+            b_ode.destroy()
+        self.objects = []
+        self.createEffectMode = False
+
+    def Demo2(self):
+        """Drop Rectangles"""
+        # add 30 objects one by one
+        if self.demo2:
+            return
+        self.odeworld.world.setSurfaceEntry(0, 0, 150, 0.1, 1, 0.9, 0.00001, 0.0, 0.002)
+        self.demo2 = True
+        self.demo2_objects = 0
+        #taskMgr.doMethodLater(0.3, self.demo2Task, "Demo2", extraArgs=[self], appendTask=True)
+        taskMgr.doMethodLater(0.3, self.demo2Task, "myDemo2")
+
+    def demo2Task(self, task):
+        if self.demo2Continue():
+            return task.done
+        return task.again
+
+    def demo2Continue(self):
+        if self.demo2_objects < self.att_Demo2NrObjectToDrop.v:
+            x = loader.loadModel("models/nbox")
+            x.setScale(1,1,4)
+
+            density = self.att_Demo2Density.v
+            bNP = x.copyTo(self.rbcnp)
+            bNP.setPos(0, 0, self.roomheight * 0.7)
+            bNP.setColor(random(), random(), random(), 1)
+            bNP.setHpr(randint(-45, 45), randint(-45, 45), randint(-45, 45))
+            self.setUntextured(bNP)
+            b_ode = odebase.ODEbox(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+            self.odeworld.AddObject(b_ode)
+            self.objects.append(b_ode)
+            self.demo2_objects += 1
+            self.rbcnp.node().collect()
+
+        if self.demo2_objects < 30:
+            return False
+        else:
+            self.demo2 = False
+            return True
+
+    def Demo3(self):
+        """Shooting"""
+        self.ClearObjects()
+        self.setShootingMode(True)
+
+        #self.odeworld.world.setSurfaceEntry(0, 0, 150, 0.1, 1, 0.9, 0.00001, 0.0, 0.002)
+        self.odeworld.world.setSurfaceEntry(0, 0, 150, 0.05, 1, 0.9, 0.00001, 0.0, 0.002)
+        x = loader.loadModel("models/nbox")
+        x.setScale(3,3,3)
+        monkey = loader.loadModel("models/monkey")
+        monkey.setScale(2.2)
+        monkey.flattenLight()
+        #monkey.flattenStrong()
+
+        density = 0.8
+
+##        y = loader.loadModel("models/box")
+##        y.setScale(28,28,1)
+##        bNP = y.copyTo(render)
+##        bNP.setPos(0,0,1)
+##        b_ode = odebase.ODEbox(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+##        self.odeworld.AddObject(b_ode)
+##        self.objects.append(b_ode)
+
+        for i in range(5):
+            if i == 4:
+                bNP = monkey.copyTo(self.rbcnp)
+                bNP.setPos(0,5,1.5 + i * 3)
+                bNP.setColor(0.9,0.9,0.1, 1)
+                self.monkeynode = bNP
+            else:
+                bNP = x.copyTo(self.rbcnp)
+                if i<3:
+                    bNP.setPos(0+(random()*1.2)-0.6,5+(random()*1.2)-0.6,1.5 + i * 3)
+                else:
+                    bNP.setPos(0,5-0.6,1.5 + i * 3)
+                bNP.setColor(random(), random(), random(), 1)
+            self.setUntextured(bNP)
+            if i == 4:
+                b_ode = odebase.ODEtrimesh(self.odeworld.world, self.odeworld.space, bNP, None, 200, 0, 1, 1)
+                #print b_ode.body.getPosition()
+                #print b_ode.geom.getPosition()
+            else:
+                b_ode = odebase.ODEbox(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+            self.odeworld.AddObject(b_ode)
+            self.objects.append(b_ode)
+        self.rbcnp.node().collect()
+
+    def Fire(self):
+        if self.demoShootmode:
+            density = 2
+            b = loader.loadModel("models/ball")
+            b.setScale(3,3,3)
+            #bNP = b.copyTo(self.rbcnp)
+            bNP = b.copyTo(render)
+            bNP.setColor(random(), random(), random(), 1)
+            self.setUntextured(bNP)
+            pos = base.camera.getPos()
+            #bNP.setPos(0,-20,15)
+            bNP.setPos(pos[0],pos[1]-3,pos[2])
+            dir = base.camera.getMat().getRow3(1)
+            #print dir
+            #bNP.setPos(0,0,15)
+            b_ode = odebase.ODEsphere(self.odeworld.world, self.odeworld.space, bNP, None, density, 0, 1, 1)
+            self.odeworld.AddObject(b_ode)
+            self.objects.append(b_ode)
+            #b_ode.body.addForce(0,100000,10)
+            #b_ode.body.addForce(* self.att_Demo3Force.getListValue())
+            b_ode.body.addForce(dir[0]*self.att_Demo3Force.v,dir[1]*self.att_Demo3Force.v,dir[2]*self.att_Demo3Force.v)
+            #self.rbcnp.node().collect()
+
+
+    def setShootingMode(self, mode):
+        if mode:
+            if mode != self.demoShootmode:
+                self.demonote = self.textnode.attachNewNode("textnode")
+                demobase.addInstructionList(0,-0.85,0.05,
+"""Press SPACE to shoot.
+Escape to leave.
+f to zoom in, g to zoom out.
+""", align=TextNode.ACenter, node=self.demonote)
+                self.parent.Accept("space", self.Fire)
+                self.parent.Accept("escape", self.EscapeShootingMode)
+                self.parent.Accept("f", self.att_cameracontrol.ZoomIn)
+                self.parent.Accept("f-up", self.att_cameracontrol.ZoomRestore)
+                self.parent.Accept("g", self.att_cameracontrol.ZoomOut)
+                self.parent.Accept("g-up", self.att_cameracontrol.ZoomRestore)
+
+                if hasattr(self, 'att_spotLightGun'):
+                    self.att_spotLightGun.setLightOn(None,True)
+                self.SetCameraPos(self.defaultpos, Vec3(0,0,self.roomheight/2))
+                self.att_cameracontrol.att_heading.v=0
+                self.att_cameracontrol.Resume()
+
+                self.demoShootmode = True
+        else:
+            if mode != self.demoShootmode:
+                self.EscapeShootingMode()
+
+    def EscapeShootingMode(self):
+        if self.demoShootmode:
+            self.demoShootmode = False
+            self.demonote.removeNode()
+            self.parent.Ignore("space")
+            self.parent.Ignore("escape")
+            self.parent.Ignore("f")
+            self.parent.Ignore("g")
+            self.parent.Ignore("f-up")
+            self.parent.Ignore("g-up")
+            self.att_cameracontrol.Stop()
+            if hasattr(self, 'att_spotLightGun'):
+                self.att_spotLightGun.setLightOn(None,False)
+            self.SetCameraPos(self.defaultpos, Vec3(0,0,self.roomheight/2))
+
+    def Demo4(self):
+        """Explode"""
+        self.Explo()
+
+    def Explo(self):
+        for o in self.objects:
+            if isinstance(o, odebase.ODEobjbase):
+                a = self.att_Demo4ExplodeForce.v
+                a *= o.body.getMass().getMagnitude()
+                l=o.body.getPosition()
+                l = [l[0] / 10, l[1]/10, 1]
+                scalp (l, a)
+                o.body.addForce(*l)
+                #print o, l
+
+                #v = o.body.getLinearVel()
+                #print v.length()
+                #if v.length() < 5:
+                    #l=o.body.getPosition()
+                #    a *= o.body.getMass().getMagnitude()
+                    #l = [l[0] / 10, l[1]/10, 1]
+                #    scalp (l, a)
+                #    o.body.addForce(*l)
+
+
+    def Demo5(self):
+        """Hanging monkey"""
+        self.ClearObjects()
+        self.setShootingMode(True)
+
+        self.odeworld.world.setSurfaceEntry(0, 0, 150, 0.1, 1, 0.9, 0.00001, 0.0, 0.002)
+
+        monkey = loader.loadModel("models/monkey")
+        monkey.setScale(2.2)
+        monkey.flattenLight()
+        #monkey.flattenStrong()
+        self.createEffectMode = self.createEffect
+
+        bNP = monkey.copyTo(render)
+        bNP.setPos(0,0,self.roomheight/2)
+        bNP.setColor(0.9,0.9,0.1, 1)
+        self.setUntextured(bNP)
+
+        #bNP.setColor(random(), random(), random(), 1)
+        self.monkey = bNP
+        b_ode = odebase.ODEtrimesh(self.odeworld.world, self.odeworld.space, bNP, None, 200, 0, 1, 1)
+        b_ode.motionfriction = 0.1
+        b_ode.angularfriction = 0.005
+        self.odeworld.AddObject(b_ode)
+        self.objects.append(b_ode)
+        self.monkeynode = bNP
+        if self.odeworld.supportEvent:
+            self.odeworld.setCollisionNotifier(b_ode, self.odeCollisionEvent)
+
+        #rod = loader.loadModel("models/cylinder2")
+        #self.joint = odebase.ODEBallJoint(self.odeworld.world, rod, render, (0.1,1,.1))
+        rod = loader.loadModel("models/cylinder")
+        self.joint = odebase.ODEBallJoint(self.odeworld.world, rod, render, (0.1,1))
+        self.joint.attach(b_ode.body, None) # Attach it to the environment
+        self.joint.setAnchor(0, 0, self.roomheight)
+        self.odeworld.AddObject(self.joint)
+        self.objects.append(self.joint)
+
+    # for version 1.6
+    def odeCollisionEvent(self, odeobject, geomcollided, entry):
+        if self.createEffectMode and self.holder == None:
+           points = entry.getContactPoints()
+           for c in points:
+               pos = self.monkeynode.getPos()
+               #print abs((c-pos).length())
+               #if abs((c-pos).length()) < 5:
+               if True:
+                   c = c-pos
+                   self.explosionSequence(self.monkeynode, c)
+                   return
+
+    def Demo6(self):
+        """Chained monkey"""
+        self.ClearObjects()
+        self.setShootingMode(True)
+
+        monkey = loader.loadModel("models/monkey")
+        monkey.setScale(2.2)
+        monkey.flattenLight()
+
+        bNP = monkey.copyTo(render)
+        bNP.setColor(0.9,0.9,0.1, 1)
+        self.setUntextured(bNP)
+        self.monkeynode = bNP
+
+        #self.createEffectMode = True
+
+        # the chain contain 5 segments of ball joints
+        x = loader.loadModel("models/ball")
+        rod = loader.loadModel("models/cylinder")
+
+        body = None
+        pos = self.roomheight
+        density = 20
+        for i in range(6):
+            prev_pos = pos
+            pos -= self.roomheight / 12.0
+            if i == 5:
+                bNP.setPos(0,0,pos-1)
+                b_ode = odebase.ODEtrimesh(self.odeworld.world, self.odeworld.space, bNP, None, 25, 0, 1, 1)
+                #b_ode.motionfriction = 0.1
+                #b_ode.angularfriction = 0.005
+                sphere = b_ode
+                self.setUntextured(bNP)
+            else:
+                np1 = x.copyTo(render)
+                np1.setScale(0.5)
+                np1.setPos(0,0,pos)
+                sphere = odebase.ODEsphere(self.odeworld.world, self.odeworld.space, np1, None, density, 0, 1, 1)
+            self.setUntextured(np1)
+            sphere.motionfriction = 0.1
+            sphere.angularfriction = 0.005
+
+            self.odeworld.AddObject(sphere)
+            self.objects.append(sphere)
+            joint = odebase.ODEBallJoint(self.odeworld.world, rod, render, (0.1,1))
+            joint.attach(sphere.body, body)
+            joint.setAnchor(0, 0, prev_pos)
+            self.objects.append(joint)
+            self.odeworld.AddObject(joint)
+            body = sphere.body
+
+    # this function is created for use a shadowmanager later
+    def setUntextured(self, np):
+        pass
+
+
+    def expandExplosion( self, task ):
+        if task.time > 0.5:
+            self.holder.removeNode( )
+            self.holder = None
+            return task.done
+        if task.time > 0:
+            scale = task.time * 14.0
+            self.holder.setScale( scale )
+        return task.cont
+
+##        # expand the explosion rign each frame until a certain size
+##        s = self.holder.getScale()
+##        if  s[0] < 7:
+##            scale = self.holder.getScale( )
+##            scale = scale + VBase3( 0.2,0.2,0.2 )
+##            #print scale
+##            self.holder.setScale( scale )
+##            return task.cont
+##        # done expanding so remove it
+##        self.holder.removeNode( )
+##        self.holder = None
+##        return task.done
+
+    def explosionSequence( self, node, pos ):
+        # load the explosion ring
+        self.holder = self.preload.copyTo(render)
+        #self.holder = loader.loadModel( 'models/ball.egg' )
+        self.holder.reparentTo( node )
+        self.holder.setScale( 0.1 )
+        #self.holder.setHpr( Vec3( 0.0, -78.0, -10.0 ) )
+        self.holder.setPos( pos )
+        self.holder.setLightOff( )
+        # play explosion effect task
+        taskMgr.add( self.expandExplosion, 'expandExplosion' )
+
+##    def smokeEffect(self, parent, pos):
+##        holder = parent.attachNewNode("smoke")
+##        holder.setPos(pos)
+##        holder.setLightOff()
+##        self.particle = ParticleEffect()
+##        self.particle.loadConfig(Filename("particles/whitelight.ptf"))
+##        #self.particle.setScale(0.4)
+##        self.particle.start(holder)
+##        return holder
+
+##    def Demo98(self):
+##        """Enable ODE"""
+##        self.odeworld.EnableODETask(2)
+##
+##    def Demo99(self):
+##        """Disable ODE"""
+##        self.odeworld.EnableODETask(0)
+
+
+class myODEWorld(odebase.ODEWorld_Simple):
+    # The task for our simulation
+    StepSize = 1/70.0
+    def simulationTask(self, task):
+        self.space.autoCollide() # Setup the contact joints
+        collisions=[]
+        self.world.quickStep(self.StepSize)
+        #cc = self.space.autoCollide() # Setup the contact joints
+        for b_ode in self.objectlist:
+            if isinstance(b_ode, odebase.ODEobjbase):
+                if b_ode.isDynamic():
+                    np = b_ode.realObj
+                    if np != None:
+                        #body = b_ode.body
+                        body = b_ode.geom
+                        np.setPosQuat(body.getPosition(), Quat(body.getQuaternion()))
+##                        if False and b_ode.mass > 0 and hasattr(b_ode, "motionfriction"):
+##                            v = b_ode.body.getLinearVel()
+##                            ma = -b_ode.motionfriction * b_ode.mass
+##                            b_ode.body.addForce(ma*v[0],ma*v[1],ma*v[2])
+##                            v = b_ode.body.getAngularVel()
+##                            ma = (1-b_ode.angularfriction)
+##                            b_ode.body.setAngularVel(ma*v[0],ma*v[1],ma*v[2])
+            else:
+                # a joint ?
+                b_ode.Render()
+        #for contact in self.contactgroup:
+        #    print contact
+        self.contactgroup.empty() # Clear the contact joints
+        if not self.supportEvent:
+            self.notify(collisions)
+        return task.again

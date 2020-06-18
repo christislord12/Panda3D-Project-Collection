@@ -1,0 +1,40 @@
+<CoordinateSystem> { Z-up }
+
+<Comment> { "Egg laid by Chicken for Blender v1.0" }
+
+<Texture> explosionRing.png {
+  "./explosionRing.png"
+}
+<Group> explosionRing {
+  <Transform> {
+    <Matrix4> {
+      1.000000 0.000000 0.000000 0.000000
+      0.000000 1.000000 0.000000 0.000000
+      0.000000 0.000000 1.000000 0.000000
+      0.007899 0.003239 -0.268257 1.000000
+    }
+  }
+  <VertexPool> explosionRing {
+    <Vertex> 0 {
+      0.708303 0.703643 0.016579
+      <UV> { 0.000000 0.000000 }
+    }
+    <Vertex> 1 {
+      -0.692505 0.703643 0.016579
+      <UV> { 1.000000 0.000000 }
+    }
+    <Vertex> 2 {
+      -0.692505 -0.697165 0.016579
+      <UV> { 1.000000 1.000000 }
+    }
+    <Vertex> 3 {
+      0.708303 -0.697165 0.016579
+      <UV> { 0.000000 1.000000 }
+    }
+  }
+  <Polygon> {
+    <TRef> { explosionRing.png }
+    <Normal> { 0.000000 0.000000 1.000000 }
+    <VertexRef> { 0 1 2 3 <Ref> { explosionRing } }
+  }
+}
