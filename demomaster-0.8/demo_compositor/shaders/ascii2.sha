@@ -1,0 +1,55 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: ascii, reference ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+			 uniform float4 k_param2,
+			 uniform float4 k_lum,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler3D k_alpha : TEXUNIT1)
+{
+	float2 numTiles = k_param1.xy;
+	float2 iNumTiles = k_param1.zw;
+	float2 iNumTiles2  = k_param2.xy;
+	float4 lum = k_lum;
+	float charBias = k_param2.z;
+
+    float3 local;
+
+	//sample RT
+	local.xy = fmod(l_texcoord0, iNumTiles);
+	float2 middle = l_texcoord0 - local.xy;
+	local.xy = local.xy * numTiles;
+	
+	//iNumTiles2 = iNumTiles / 2
+	middle = middle + iNumTiles2;
+	float4 c = tex2D(k_src, middle );
+	float4 cr = c;
+	//c += float4(0.1,0.1,0.1,0);
+	
+	//multiply luminance by charbias , beacause not all slices of the ascii
+	//volume texture are used
+	local.z = dot(c , lum)*charBias;
+	
+	//fix to brighten the dark pixels with small characters
+	//c *= lerp(2.0,1.0, local.z);
+	
+	c *= tex3D(k_alpha,local);
+	o_color = c + cr/5;
+	//o_color.w = 1;
+}

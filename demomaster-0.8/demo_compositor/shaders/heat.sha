@@ -1,0 +1,29 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: heat effect
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_time,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_normalmap : TEXUNIT1
+			 )
+{
+	float2 offset= float2(sin(k_time.x) * 0.01,-k_time.x * 0.4);
+    float4 normal = 2 * (tex2D(k_normalmap, l_texcoord0 * 2.5 + offset) - 0.5);
+    o_color = tex2D(k_src, l_texcoord0 + normal.xy * 0.01);
+}
+

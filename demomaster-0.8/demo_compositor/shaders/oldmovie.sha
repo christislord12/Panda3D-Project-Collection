@@ -1,0 +1,73 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: old movie, port from ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+float4 getSplotches(float2 spriteAddr,
+			 uniform sampler2D tex : TEXUNIT1 //SplotchesTx
+			)
+{
+   // get sprite address into paged texture coords space
+   spriteAddr = spriteAddr / 6.3f;
+   //spriteAddr = spriteAddr - frac(spriteAddr);
+   spriteAddr = spriteAddr - (spriteAddr /33.3f);
+
+   return tex2D(tex, spriteAddr);
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_time,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_SplotchesTx : TEXUNIT1, //SplotchesTx
+			 uniform sampler2D k_SepiaTx : TEXUNIT2, //SepiaTx
+			 uniform sampler2D k_noise : TEXUNIT3  //noise
+			 )
+{
+	float time_cycle_period = 10;
+	float flicker = 0.4;
+	float DirtFrequency = 0.0005;
+	float3 luminance = float3(0.30,0.59,0.11);
+	float frameJitter = 0.004;
+	float lumiShift=0.03;
+
+	time_cycle_period = k_time.x * 20;
+    float2 spriteAddr = l_texcoord0 + tex2D(k_noise, float2(time_cycle_period  * DirtFrequency,0)).xy;
+
+    // add some dark and light splotches to the film
+    float4 splotches = getSplotches(spriteAddr, k_SplotchesTx);
+    float4 specs = 1.0f - getSplotches(spriteAddr / 2.0f, k_SplotchesTx);
+
+    // convert color to base luminance
+    float4 base = tex2D(k_src, l_texcoord0 + float2(0, spriteAddr.y * frameJitter));
+    float lumi = dot(base.rgb, luminance);
+    // randomly shift luminance
+    //lumi -= spriteAddr.x * lumiShift;
+	lumi += spriteAddr.x * lumiShift;
+	lumi = saturate(lumi);
+    // tone map luminance
+    base.rgb = tex2D(k_SepiaTx, float2(lumi,0) ).xyz;
+
+    // calc flicker speed
+    float darken = frac(flicker * time_cycle_period);
+
+    // we want darken to cycle between 0.6 and 1.0
+    darken = abs(darken - 0.5f) * 0.4f + 0.6f;
+    // composite dirt onto film
+	o_color =  base * splotches * darken + specs/3;
+    o_color.w = 1;
+}
+

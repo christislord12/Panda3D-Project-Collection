@@ -1,0 +1,70 @@
+Pose NeckNormal:
+	hpr Neck Default
+
+######################################################
+Pose BreastNormal:
+	hpr Breast (178.37,60.20,1.22)
+	
+Pose BreastUp:
+	hpr Breast (178.37,95.20,1.22)
+	
+	
+##########################################################
+Pose BackBend:
+	hpr Back01 (-0.29,90.09,-0.17)
+	hpr Back02 (0.48,50.30,0.51)
+	hpr Back03 (-0.38,25.39,-0.40)
+	hpr Back04 (0.74,15.28,0.79)
+	
+Pose BackNormal:
+	hpr Back01 Default
+	hpr Back02 Default
+	hpr Back03 Default
+	hpr Back04 Default
+
+Pose AnkleExtend:
+	getpose AnkleExtend.L
+	getpose AnkleExtend.R
+
+Pose Default:
+	getpose NeckNormal
+	getpose BackNormal
+	getpose BreastNormal
+	getpose F.Open.L
+	getpose F.Open.R
+	getpose ArmNormal.L
+	getpose ArmNormal.R
+	getpose LegNormal.L
+	getpose LegNormal.R
+
+Pose me.Default:
+	hpr me (0,0,0)
+	pos me (0,0,0)
+	
+Pose Jaw.Normal:
+	hpr Jaw Default
+	
+Pose MouthNormal.U:
+	pos Mouth.U Default
+
+Pose MouthNormal.D:
+	pos Mouth.D Default
+	
+	
+Pose Mouth.Normal:
+	getpose MouthNormal.L
+	getpose MouthNormal.R
+	getpose MouthNormal.U
+	getpose MouthNormal.D
+
+	
+Pose Face.Normal:
+	getpose EyebrowsNormal.L 
+	getpose EyebrowsNormal.R
+	getpose Mouth.Normal
+	getpose Jaw.Normal
+	constraint UpperLid.L hpr off
+	constraint UpperLid.R hpr off
+	constraint LowerLid.L hpr off
+	constraint LowerLid.R hpr off
+

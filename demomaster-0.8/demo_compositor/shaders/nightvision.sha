@@ -1,0 +1,44 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: nightvision, reference ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_noise : TEXUNIT1,
+			 uniform float4 k_lum,
+			 uniform float4 k_time)
+{
+	float4 oC;
+	oC = tex2D(k_src, l_texcoord0);
+	
+	//obtain luminence value
+	oC = dot(oC,k_lum);
+	
+	//add some random noise
+	oC += 0.2 *(tex2D(k_noise, l_texcoord0*k_time.x))- 0.05;
+	
+	//add lens circle effect
+	//(could be optimised by using texture)
+	float dist = distance(l_texcoord0, float2(0.5,0.5));
+	oC *= smoothstep(0.5,0.45,dist);
+	
+	//add rb to the brightest pixels
+	oC.rb = max (oC.r - 0.75, 0)*4;
+	
+	o_color = oC;
+	o_color.w = 1;
+}

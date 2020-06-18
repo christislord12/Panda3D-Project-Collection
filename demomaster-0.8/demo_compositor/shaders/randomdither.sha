@@ -1,0 +1,36 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: random dither test
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_noise : TEXUNIT1,
+			 uniform float4 k_param1)
+{
+	half c = dot(tex2D(k_src, l_texcoord0),half4(0.30,0.11,0.59,0.00));
+	half4 noise4 = tex2D(k_noise, l_texcoord0);
+	half noise = (noise4.x + noise4.y + noise4.z)/3;
+	//half noise = noise4.x;
+	half n = noise*2 - 1.0;
+	c += n;
+	if (c > k_param1.x) {
+		c = 0.0;
+	} else {
+		c = 1.0;
+	}   
+	o_color = float4(c,c,c,1);
+}

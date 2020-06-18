@@ -1,0 +1,36 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: posterize from ogre demo
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+			uniform float4 k_param1,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_src : TEXUNIT0)
+{
+	float nColors = k_param1.x; //8;
+	float gamma = k_param1.y; // 0.6;
+
+	float4 texCol = tex2D(k_src, l_texcoord0);
+	float3 tc = texCol.xyz;
+	tc = pow(tc, gamma);
+	tc = tc * nColors;
+	tc = floor(tc);
+	tc = tc / nColors;
+	tc = pow(tc,1.0/gamma);
+    o_color.xyz  = tc;
+    o_color.w = 1;
+}
+

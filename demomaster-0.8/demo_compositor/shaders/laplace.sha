@@ -1,0 +1,50 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: laplace from ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+
+// The Laplace filter approximates the second order derivate,
+// that is, the rate of change of slope in the image. It can be
+// used for edge detection. The Laplace filter gives negative
+// response on the higher side of the edge and positive response
+// on the lower side.
+
+// This is the filter kernel:
+// 0  1  0
+// 1 -4  1
+// 0  1  0
+
+float2 samples[4] = {
+        float2(0, -1),
+       float2(-1,  0),
+        float2(1,  0),
+        float2(0,  1)
+    };
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+			 uniform float4 k_vTexelSize,
+             uniform sampler2D k_src : TEXUNIT0)
+{
+   float scale=k_param1.x; //1.0
+   float4 laplace = -4 * tex2D(k_src, l_texcoord0);
+   // Sample the neighbor pixels
+   for (int i = 0; i < 4; i++){
+      laplace += tex2D(k_src, l_texcoord0 + k_vTexelSize.xy * samples[i]);
+   }
+   o_color  = (0.5 + scale * laplace);
+   o_color.w = 1;
+}

@@ -1,0 +1,104 @@
+Pose Eye.Down1:
+	hpr Eye.L (0,-8,0)
+	hpr Eye.R (0,-8,0)
+
+Pose ArmPos1.L:
+	hpr Neck (-0, 8,180)
+	hpr Shoulder.L (-95,-21.09,-96.4)
+	hpr Bicep.L (-75,-75,-142)
+	hpr Forearm.L (-6,-48,-20)
+	
+Pose ArmPos0.L:
+	hpr Neck Default
+	hpr Eye.L Default
+	getpose ArmNormal.L
+
+Pose NeckLook1L:
+	hpr Neck (-0.57,1.69,209.30)
+
+Pose NeckLook1R:
+	hpr Neck (-0.57,1.69,142.30)
+	
+Pose ArmPos2L:
+	hpr Bicep.L (-75.35,-3.66,-57.68)
+	hpr Forearm.L Default
+	hpr Bicep.R (18.79,-58.60,58.60)
+	hpr Forearm.R Default
+	getpose F.Open.L
+	hpr Wrist.L (-75.35,58.60,142.33)
+
+Pose LegPos2L:
+	#hpr Thing.L (-176.69,-24.64,-226.05)
+	#hpr Thing.R (176.70,-24.64,192.56)
+	hpr Thing.L (-175.81,92.09,-192.56)
+	hpr Calf.L (5.90,128.84,-0.04)
+	getpose AnkleExtend.L
+
+	hpr Thing.R (176.70,-8.37,178.62)
+	hpr Calf.R (-8.37,25.12,0.04)
+	hpr Ankle.R (-25.12,-92.09,147.51)
+
+
+Pose me.Pos1:
+	hpr me (-25,0,0)
+
+Pose me.Pos2:
+	hpr me (-23,0,-5)
+	pos me (-0.5,0,10)
+
+Pose ArmLower1.L:
+	hpr Bicep.L (-18.72,-75.35,-57.68)
+
+Pose me.PPP:
+	hpr me (0,900,0)	
+Pose me.PPPN:
+	hpr me (1080,1080,0)	
+
+Pose Jaw.OpenS:
+	hpr Jaw (179.98,-58.60,-180.00)
+
+Pose Worried:
+	getpose EyebrowsWorried.L
+	getpose EyebrowsWorried.R
+	getpose MouthWorried.L
+	getpose MouthWorried.R
+	getpose UpperLidCloseLittle.L
+	getpose UpperLidCloseLittle.R
+	
+Pose Smile:	
+	getpose EyebrowsHappy.L
+	getpose EyebrowsHappy.R
+	getpose MouthHappy.L
+	getpose MouthHappy.R
+	pos Mouth.U (0.00,0.68,-0.59) # show some teeth
+	pos Mouth.D (0.00,1.07,0.05)
+
+Pose Sad:	
+	getpose EyebrowsSad.L
+	getpose EyebrowsSad.R
+	getpose MouthSad.L
+	getpose MouthSad.R
+
+Pose VerySad:	
+	getpose EyebrowsVSad.L
+	getpose EyebrowsVSad.R
+	getpose MouthVSad.L
+	getpose MouthVSad.R
+	getpose Jaw.OpenS
+
+Pose Smart.L:	
+	getpose EyebrowsHappy.L
+	getpose EyebrowsNormal.R
+	getpose MouthHappy.L
+	getpose MouthNormal.R
+	pos Mouth.U (0.00,0.68,-0.59) # show some teeth
+
+Pose Expression1:
+	pos Mouth.U (0.00,0.68,-0.55) # show some teeth
+	pos Mouth.D (0.00,1.07,0.05) # show some teeth
+	pos Mouth.R (0.38,0.50,-0.68) # inward a bit
+	pos Mouth.L (-0.38,0.50,-0.68) # inward a bit
+	pos Eyebrows.L	(-0.04,1.06,0.25) # up a bit
+	pos Eyebrows.R	(0.06,1.06,0.20)  # up a bit
+	hpr Jaw (179.98,-58.60,-180.00)
+

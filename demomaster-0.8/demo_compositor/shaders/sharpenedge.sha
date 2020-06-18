@@ -1,0 +1,40 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: sharpen edge, from ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+float2 usedTexelED[8] = {
+		float2(-1, -1),
+		 float2(0, -1),
+		 float2(1, -1),
+		float2(-1,  0),
+		 float2(1,  0),
+		float2(-1,  1),
+		 float2(0,  1),
+	     float2(1,  1),
+	};
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_vTexelSize,
+             uniform sampler2D k_src : TEXUNIT0)
+{
+  float4 avgcolor = 9 * tex2D(k_src, l_texcoord0);
+  //float2 vTexelSize = float2(1.0/800,1.0/600);
+  for(int t=0; t<8; t++)
+	avgcolor -= tex2D(k_src, l_texcoord0 + k_vTexelSize.xy * usedTexelED[t]);
+  o_color.xyz = avgcolor.xyz;
+  o_color.w = 1;
+}
+

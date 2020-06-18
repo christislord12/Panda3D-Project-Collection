@@ -1,0 +1,175 @@
+Animation Breath:
+	fps 200
+	Frame 0:
+		pose BreastNormal 0
+	Frame 1:
+		pose BreastUp 200
+	Frame 201:
+		pose BreastNormal 200
+	Frame 401:
+		# Bye
+
+Animation Blink:
+	fps 100
+	Frame 0:
+		pose UpperLidOpen.L 0
+		pose UpperLidOpen.R 0
+	Frame 1:
+		pose UpperLidClose.L 10 decelerate
+		pose UpperLidClose.R 10 decelerate
+	Frame 11:
+		pose UpperLidOpen.L 10 accelerate
+		pose UpperLidOpen.R 10 accelerate
+	Frame 300:
+		# BYE
+
+Animation VerySadFace:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		pose UpperLidCloseLittle.L 1
+		pose UpperLidCloseLittle.R 1
+		pose VerySad 200
+	Frame 301:
+		# bye
+
+Animation SadFace:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		pose UpperLidCloseLittle.L 1
+		pose UpperLidCloseLittle.R 1
+		pose Sad 200
+	Frame 301:
+		# bye
+
+Animation NormalFace:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		# bye
+
+
+Animation HappyFace:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		pose Smile 200
+	Frame 301:
+		# bye
+
+Animation Worried:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		pose LowerLidCloseLittle.L 1
+		pose LowerLidCloseLittle.R 1
+		pose Worried 200
+	Frame 301:
+		# bye
+
+Animation Smart.L:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 100
+	Frame 101:
+		pose UpperLidCloseLittle.R 1
+		pose LowerLidCloseLittle.R 1
+		pose Smart.L 200
+	Frame 301:
+		# bye
+
+Animation Expression1:
+	fps 100:
+	Frame 1:
+		pose Face.Normal 200
+	Frame 201:
+		pose Expression1 200
+	Frame 401:
+		# bye
+
+#################################################################
+Animation Animation1:
+	fps 100
+	default smooth
+	Frame 0:
+		pose Default 0
+		pose Face.Normal 0
+		gravity 1
+	Frame 1:
+		pose me.Pos1 200
+		pose ArmPos1.L 200
+		pose ArmPos1.R 200
+		pose Eye.Down1 200
+	Frame 200:
+		pose F.Close.L 100
+		pose F.Close.R 100
+	Frame 400:
+		pose me.Pos2 200
+		pose ArmPos2L 300 decelerate
+		pose NeckLook1R 50
+		pose LegPos2L 100 accelerate
+	Frame 500:
+		pose NeckLook1L 100 decelerate
+	Frame 550:
+		pose Expression1 100
+	Frame 900:
+		pose Face.Normal 100
+		pose Default 100
+		pose me.Default 100
+	Frame 1000:
+		# Last Frame, must define
+	
+
+Animation Dive:
+	fps 100
+	Frame 0:
+		pose Default 0
+		pose me.Default 0
+		pose ArmLower1.L 0
+		pose ArmLower1.R 0
+		pose Face.Normal 0
+		gravity 1
+	Frame 101:
+		pose AnkleExtend 100
+		pose ArmNormal.L 100
+		pose ArmNormal.R 100
+		pose Smile 100
+	Frame 301:
+		pose BackBend 250 accelerate
+		gravity 0
+	Frame 501:
+		pose me.PPP 300 linear
+	Frame 801:
+		pose me.PPPN 300
+	Frame 1001:
+		pose BackNormal 100
+	Frame 1101:
+		gravity 1
+		pose me.Default 1
+	Frame 1301:
+		pose Default 100
+		pose LegNormal.L 100
+		pose LegNormal.R 100
+		pose ArmLower1.L 100
+		pose ArmLower1.R 100
+		pose Face.Normal 100
+	Frame 1501:
+		# BYE
+		
+############################
+Animation Say.BI:
+	fps 100:
+	Frame 0:
+		pose Face.Normal 0
+	Frame 1:
+		pose A.B 20
+	Frame 61:
+		pose A.I 20
+	Frame 81:
+		# bye

@@ -1,0 +1,65 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: old tv effect port from ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 out float2 l_pos : TEXCOORD1,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+  l_pos = vtx_position.xz;
+  
+}
+
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+			 float2 l_pos : TEXCOORD1,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+			 uniform float4 k_param2,
+			 uniform float4 k_time,
+
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler3D k_rand : TEXUNIT1,
+			 uniform sampler3D k_noise : TEXUNIT2
+			 )
+{
+    float distortionFreq = k_param1.x;
+    float distortionScale = k_param1.y;
+    float distortionRoll = k_param1.z;
+    float interference = k_param1.w;
+    float frameLimit = k_param2.x;
+    float frameShape = k_param2.y;
+    float frameSharpness = k_param2.z;
+	float2 pos = l_pos;
+	
+    // Define a frame shape
+    float f = (1 - pos.x * pos.x) * (1 - pos.y * pos.y);
+    float frame = saturate(frameSharpness * (pow(f, frameShape) - frameLimit));
+
+    // Interference ... just a texture filled with rand()
+    float rand = tex3D(k_rand, float3(1.5 * pos, k_time.x)) - 0.2;
+
+    // Some signed noise for the distortion effect
+    float noisy = tex3D(k_noise, float3(0, 0.5 * pos.y, 0.1 * k_time.x)) - 0.5;
+
+    // Repeat a 1 - x^2 (0 < x < 1) curve and roll it with sinus.
+    float dst = frac(pos.y * distortionFreq + distortionRoll * sin(k_time.x));
+    dst *= (1 - dst);
+    // Make sure distortion is highest in the center of the image
+    dst /= 1 + distortionScale * abs(pos.y);
+
+    // ... and finally distort
+	float2 img = l_texcoord0;
+    img.x += distortionScale * noisy * dst;
+    float4 image = tex2D(k_src, img);
+
+    // Combine frame, distorted image and interference
+    o_color = frame * (interference * rand + image);
+}

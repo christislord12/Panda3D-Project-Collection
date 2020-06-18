@@ -1,0 +1,64 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: hatching
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_lum,
+             uniform sampler2D k_src : TEXUNIT0,
+			uniform sampler2D k_hatch0 : TEXUNIT1,
+			uniform sampler2D k_hatch1 : TEXUNIT2,
+			uniform sampler2D k_hatch2 : TEXUNIT3,
+			uniform sampler2D k_hatch3 : TEXUNIT4,
+			uniform sampler2D k_hatch4 : TEXUNIT5,
+			uniform sampler2D k_hatch5 : TEXUNIT6)
+{
+	float diffuse = dot(tex2D(k_src, l_texcoord0).xyz, k_lum.xyz);
+	diffuse = pow(diffuse,4);
+	float hatchFactor = diffuse * 6.0;
+	float4 l_hatchWeight0 = 0;
+	float4 l_hatchWeight1 = 0;
+	if (hatchFactor > 5.9) {
+		l_hatchWeight0.w = 1.0;
+	} else if (hatchFactor > 5.0) {
+		l_hatchWeight0.x = 1.0;
+	} else if (hatchFactor > 4.0) { 
+		l_hatchWeight0.y = (5.0 - hatchFactor);
+		l_hatchWeight0.x = 1 - l_hatchWeight0.y;
+	} else if (hatchFactor > 3.0) { 
+		l_hatchWeight0.z = (4.0 - hatchFactor);
+		l_hatchWeight0.y = 1 - l_hatchWeight0.z;
+	} else if (hatchFactor > 2.0) { 
+		l_hatchWeight1.x = (3.0 - hatchFactor);
+		l_hatchWeight0.z = 1 - l_hatchWeight1.x;
+	} else if (hatchFactor > 1.0) { 
+		l_hatchWeight1.y = (2.0 - hatchFactor);
+		l_hatchWeight1.x = 1 - l_hatchWeight1.y;
+	} else if (hatchFactor > 0.0) { 
+		l_hatchWeight1.z = (1.0 - hatchFactor);
+		l_hatchWeight1.y = 1 - l_hatchWeight1.z;
+	}	
+	float2 k = l_texcoord0 * k_lum.w;
+	float4 hatchTex0 = tex2D(k_hatch0, k) * l_hatchWeight0.x;
+	float4 hatchTex1 = tex2D(k_hatch1, k) * l_hatchWeight0.y;
+	float4 hatchTex2 = tex2D(k_hatch2, k) * l_hatchWeight0.z;
+	float4 hatchTex3 = tex2D(k_hatch3, k) * l_hatchWeight1.x;
+	float4 hatchTex4 = tex2D(k_hatch4, k) * l_hatchWeight1.y;
+	float4 hatchTex5 = tex2D(k_hatch5, k) * l_hatchWeight1.z;
+	//o_color = hatchTex0 + hatchTex1 + hatchTex2 + hatchTex3 + hatchTex4 + hatchTex5;
+	o_color = l_hatchWeight0.w + (hatchTex0 + hatchTex1 + hatchTex2 + hatchTex3 + hatchTex4 + hatchTex5);
+	o_color.w = 1;	
+}
+

@@ -1,0 +1,36 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: tone mapping
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_src1 : TEXUNIT1)
+{
+	float fExposureLevel= k_param1.x;
+	float4 original = tex2D(k_src1,   l_texcoord0);
+	float4 blur  = tex2D(k_src, l_texcoord0);
+	float4 color = lerp(original, blur, k_param1.y);
+	l_texcoord0 -= 0.5;
+	
+	// Square of distance from origin (center of screen)
+	float vignette = 1 - dot(l_texcoord0,l_texcoord0);
+	// Multiply by vignette to the fourth
+	color = color * vignette*vignette*vignette*vignette;
+	color *= fExposureLevel; // Apply simple exposure level
+	o_color = pow(color, k_param1.z); // Apply gamma and retur
+}
+

@@ -1,0 +1,20 @@
+Pose A.B:
+	hpr Jaw (179.98,-63.50,-180.00)
+	pos Mouth.R Default
+	pos Mouth.L Default
+	pos Mouth.U (0.00,0.6,-0.63) 
+	pos Mouth.D (0.00,1.0,0.15) 
+
+Pose A.I:
+#	pos Mouth.U (0.00,0.68,-0.57) # show some teeth
+#	pos Mouth.D (0.00,1.07,0.10) # show some teeth
+	pos Mouth.U (0.00,0.68,-0.59) 
+	pos Mouth.D (0.00,1.07,0.12) 
+	pos Mouth.R Default
+	pos Mouth.L Default
+	hpr Jaw (179.98,-58.60,-180.00)
+
+Pose A.O1:
+	pos Mouth.R (0.38,0.50,-0.68) # inward a bit
+	pos Mouth.L (-0.38,0.50,-0.68) # inward a bit
+	hpr Jaw (179.98,-58.60,-180.00)

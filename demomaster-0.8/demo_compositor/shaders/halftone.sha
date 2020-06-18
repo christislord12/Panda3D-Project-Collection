@@ -1,0 +1,35 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: halftone, reference ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler3D k_pattern : TEXUNIT1,
+			 uniform float4 k_param1,
+			 uniform float4 k_param2,
+			 uniform float4 k_lum)
+{
+	float3 local;
+	float2 numTiles = k_param1.xy;
+	float2 iNumTiles = k_param1.zw;
+	float2 iNumTiles2 =  k_param2.xy;
+	local.xy = fmod(l_texcoord0, iNumTiles);
+	float2 middle = l_texcoord0 - local.xy;
+	local.xy = local.xy * numTiles;
+	middle +=  iNumTiles2;
+	local.z = dot(tex2D(k_src, middle), k_lum);
+	o_color = tex3D(k_pattern,local);
+}

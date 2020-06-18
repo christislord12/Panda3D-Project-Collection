@@ -1,0 +1,47 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: motion detection
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+float stepwise(float v, float threshold)
+{
+	if (v > threshold)
+		return 1;
+	else
+		return 0;
+}
+
+float3 stepwiseV(float3 v, float threshold)
+{
+	return float3(stepwise(v.x,threshold),stepwise(v.y,threshold),stepwise(v.z,threshold));
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+			 uniform float4 k_count,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_prevsrc0 : TEXUNIT1,
+			 uniform sampler2D k_prevsrc1 : TEXUNIT2)
+{
+   float4 c = tex2D(k_src, l_texcoord0);
+   float4 cp;
+   if (k_count.x > 0)
+	  cp = tex2D(k_prevsrc0, l_texcoord0);
+   else
+      cp = tex2D(k_prevsrc1, l_texcoord0);
+   float3 v = stepwiseV(abs(c-cp).xyz, k_param1.y);
+   o_color.rgb  = v * c.xyz;
+   o_color.w = 1;
+}

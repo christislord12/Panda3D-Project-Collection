@@ -1,0 +1,190 @@
+########################33
+# open thumb finger
+Pose F1.Open.L:
+	hpr Thumb3.L Default
+	hpr Thumb2.L Default
+	hpr Thumb1.L Default
+# close thumb finger
+Pose F1.Close.L:
+	hpr Thumb3.L: (-58.6,8.37,-45.58)
+	hpr Thumb2.L (25.12,-2.91,8.37)
+	hpr Thumb1.L (92,8.37,25)
+
+# open index finger
+Pose F2.Open.L:
+	hpr Index3.L Default
+	hpr Index2.L Default
+	hpr Index1.L Default
+# close index finger
+Pose F2.Close.L:
+	hpr Index3.L (-65.9,-20,-25.12)
+	hpr Index2.L: (-108.84,-48.86,-115.58)
+	hpr Index1.L (0,-92,0)
+
+# open middle finger
+Pose F3.Open.L:
+	hpr Middle3.L Default
+	hpr Middle2.L Default
+	hpr Middle1.L Default
+# close middle finger
+Pose F3.Close.L:
+	hpr Middle3.L (-75.4,-30.86,15.37)
+	hpr Middle2.L: (-90,0,-90)
+	hpr Middle1.L (0,-90,0)
+
+# open ring finger
+Pose F4.Open.L:
+	hpr Ring3.L Default
+	hpr Ring2.L Default
+	hpr Ring1.L Default
+# close ring finger
+Pose F4.Close.L:
+	#hpr Ring3.L (-75.4,-35.86,-155.37)
+	hpr Ring3.L (-75.4,-25.86,-155.37)
+	#hpr Ring2.L: (88.6,-10.75,129)
+	hpr Ring2.L: (88.6,-15.75,119)
+	#hpr Ring1.L (-92,-58,0)
+	hpr Ring1.L (-92,-58, -30)
+
+# open Pinky finger
+Pose F5.Open.L:
+	hpr Pinky3.L Default
+	hpr Pinky2.L Default
+	hpr Pinky1.L Default
+# close Pinky finger
+Pose F5.Close.L:
+	hpr Pinky3.L (-75.4,-25.86,-155.37)
+	hpr Pinky2.L (88.6,-15.75,119)
+	hpr Pinky1.L (-92,-58, -80)
+
+# all finger open
+Pose F.Open.L:
+	getpose F1.Open.L
+	getpose F2.Open.L
+	getpose F3.Open.L
+	getpose F4.Open.L
+	getpose F5.Open.L
+# all finger close
+Pose F.Close.L:
+	getpose F1.Close.L
+	getpose F2.Close.L
+	getpose F3.Close.L
+	getpose F4.Close.L
+	getpose F5.Close.L
+
+
+Pose ArmNormal.L:
+	hpr Shoulder.L Default
+	hpr Bicep.L Default
+	hpr Forearm.L Default
+	hpr Wrist.L Default
+	
+Pose LegNormal.L:
+	hpr Thing.L Default
+	hpr Calf.L Default
+	hpr Ankle.L Default
+	
+Pose AnkleExtend.L:
+	hpr Ankle.L (8.37,-8.37,-175.81)
+
+Pose UpperLidOpen.L:
+	hpr UpperLid.L (-1.00,18.05,-180.00)
+	
+Pose UpperLidClose.L:
+	hpr UpperLid.L (-1.00,-25.05,-180.00)
+
+Pose EyebrowsNormal.L:
+	pos Eyebrows.L (-0.04,1.04,0.18)	
+	hpr Eyebrows.L (120.10,-4.33,-2.49)
+
+Pose EyebrowsNormal.R:
+	pos Eyebrows.R (0.06,1.04,0.13)
+	hpr Eyebrows.R (-120.10,4.33,-2.49)
+
+Pose EyebrowsUp.L:
+	pos Eyebrows.L (-0.04,1.04,0.25)	
+	hpr Eyebrows.L (120.10,-4.33,-2.49)
+	
+Pose EyebrowsUp.R:
+	pos Eyebrows.R (0.06,1.04,0.20)
+	hpr Eyebrows.R (-120.10,4.33,-2.49)
+
+Pose EyebrowsDown.L:
+	pos Eyebrows.L (-0.04,1.04,0.15)	
+	hpr Eyebrows.L (120.10,-4.33,-2.49)
+
+Pose EyebrowsDown.R:
+	pos Eyebrows.R (0.06,1.04,0.1)
+	hpr Eyebrows.R (-120.10,4.33,-2.49)
+
+Pose EyebrowsHappy.L:
+	pos Eyebrows.L (-0.04,1.04,0.18)	
+	hpr Eyebrows.L (120.10,8.33,-2.49)
+
+Pose EyebrowsHappy.R:
+	pos Eyebrows.R (0.06,1.04,0.13)
+	hpr Eyebrows.R (-120.10,16.33,-2.49)
+
+Pose EyebrowsSad.L:
+	pos Eyebrows.L (-0.04,1.04,0.25)
+	hpr Eyebrows.L (120.10,-10.33,-2.49)
+
+Pose EyebrowsSad.R:
+	pos Eyebrows.R (0.06,1.04,0.2)
+	hpr Eyebrows.R (-120.10,-2.33,-2.49)
+
+
+Pose EyebrowsVSad.L:
+	pos Eyebrows.L (-0.04,1.04,0.30)	
+	hpr Eyebrows.L (120.10,-18.33,-2.49)
+
+Pose EyebrowsVSad.R:
+	pos Eyebrows.R (0.06,1.04,0.25)
+	hpr Eyebrows.R (-120.10,-10.33,-2.49)
+
+Pose MouthNormal.L:
+	pos Mouth.L Default
+
+Pose MouthHappy.L:
+	pos Mouth.L (-0.45,0.50,-0.62)
+	
+Pose MouthHappy.R:
+	pos Mouth.R (0.46,0.50,-0.62)
+
+Pose MouthSad.L:
+	pos Mouth.L (-0.45,0.50,-0.70)
+
+Pose MouthSad.R:
+	pos Mouth.R (0.46,0.50,-0.70)
+
+Pose MouthVSad.L:
+	pos Mouth.L (-0.45,0.50,-0.72)
+
+Pose MouthVSad.R:
+	pos Mouth.R (0.46,0.50,-0.72)
+
+
+Pose EyebrowsWorried.L:
+	pos Eyebrows.L (-0.01,1.06,0.20)
+	hpr Eyebrows.L (120.10,-4.33,-2.49)
+
+Pose EyebrowsWorried.R:
+	pos Eyebrows.R (0.01,1.06,0.15)
+	hpr Eyebrows.R (-120.10,4.33,-2.49)
+
+Pose MouthWorried.L:
+	pos Mouth.L (-0.41,0.50,-0.7)
+
+Pose MouthWorried.R:
+	pos Mouth.R (0.42,0.50,-0.7)
+
+Pose UpperLidCloseLittle.L:
+	hpr UpperLid.L hpr (-1.00,10.05,-180.00)
+	constraint UpperLid.L hpr (-1.00,-25.05,-180.00) (-1.00,10.05,-180.00)
+
+Pose UpperLidCloseLittle.R:
+	hpr UpperLid.R hpr (0.00,10.05,-180.00)
+	constraint UpperLid.R hpr (0.00,-25.05,-180.00) (0.00,10.05,-180.00)
+
+Pose LowerLidCloseLittle.L:
+	hpr LowerLid.L hpr (0.00,-15.0,-180.00)
