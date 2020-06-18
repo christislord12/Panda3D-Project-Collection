@@ -1,0 +1,47 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+
+//by mavasher - based on some code by clcheung and ynjh_jo
+void vshader(
+    in float4 vtx_position : POSITION,
+	in float4 vtx_color : COLOR0, 
+	in float3 vtx_normal: NORMAL,
+	in uniform float4 k_eyePositionW,
+    uniform float4x4 mat_modelproj,
+	uniform float4 mspos_cam,
+	uniform in float4x4 trans_model_to_world,
+	out float  l_smooth,
+	out float  l_facingRatio,
+	out float4 l_position : POSITION,
+	out float4 l_color : COLOR0, 
+	out float3 l_R : TEXCOORD1)
+	
+{
+    l_smooth = smoothstep( -1.5,1,dot(vtx_normal, normalize(vtx_position)) );
+    l_facingRatio = pow( 1.0-saturate( dot(vtx_normal, normalize(mspos_cam-vtx_position)) ), 2 );
+	l_position = mul(mat_modelproj, vtx_position);
+	l_color = vtx_color; 
+	float3 positionW = mul(trans_model_to_world,vtx_position).xyz; 
+	float3 N = mul((float3x3)trans_model_to_world, vtx_normal);
+	N=normalize(N); 
+	float3 I = positionW - k_eyePositionW; 	
+	l_R = reflect(I, N);
+}
+
+void fshader(
+	in uniform float4 k_param1,
+	in float  l_smooth,
+	in float  l_facingRatio,
+	in float3 l_R : TEXCOORD1,
+	in uniform samplerCUBE k_texcube : TEXUNIT1,   //UNIT0
+    out float4 o_color: COLOR0
+    )
+{
+	float4 r;
+	r.xyz = l_R;
+	r.w = k_param1.y; // reflection blur
+    
+	float4 reflectedColor = texCUBEbias(k_texcube, r);
+
+	o_color = float4(lerp(reflectedColor.rgb*l_smooth, reflectedColor.rgb*l_smooth, k_param1.x),l_facingRatio*2.5);
+}                             

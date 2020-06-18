@@ -1,0 +1,422 @@
+
+from random import randint, random
+import math, sys
+import demobase, camerabase, geomutil
+
+#import direct.directbase.DirectStart
+from pandac.PandaModules import Filename, StringStream
+from direct.gui.OnscreenText import OnscreenText
+
+from pandac.PandaModules import NodePath, WindowProperties
+from pandac.PandaModules import TextNode
+from pandac.PandaModules import Vec3,Vec4,Point3
+from pandac.PandaModules import Shader, Texture, TextureStage, ShaderPool, PNMImage, RenderState
+from direct.interval.LerpInterval import LerpFunc
+from direct.actor.Actor import Actor
+
+
+SIZE=64
+####################################################################################################################
+class ShaderAdvance3Demo(demobase.DemoBase):
+    """
+    Shaders - Advance Demo 3
+    To test how to combine offscreen buffer with a shader
+    """
+    def __init__(self, parent):
+        demobase.DemoBase.__init__(self, parent)
+
+
+    def InitScene(self):
+        base.setBackgroundColor(0.5, 0.2, 0.2)
+
+        self.textnode = render2d.attachNewNode("textnode")
+
+        self.LoadModels()
+        self.LoadLights()
+        self.att_cameracontrol = camerabase.Att_CameraControllerByMouse(self.parent, False, "Camera:Camera Control", \
+                     [-100,-100,-100], [100,100,100], [-45,45, -17], [0,0,45],
+                     Vec3(48,-48,21),
+                     rate=0.2)
+        self.att_cameracontrol.DefaultController()
+        self.att_cameracontrol.Stop()
+
+    	demobase.addInstructionList(-1,0.95,0.05, self.att_cameracontrol.GetDefaultInstruction(),node=self.textnode)
+
+        taskMgr.add(self.timer, 'mytimer')
+        self.image = None
+
+        self.buffer = base.win.makeTextureBuffer( 'surface', SIZE, SIZE )
+        self.buffer.setClearColor( Vec4( 0.5, 0.5, 0.5, 1 ) )
+        self.buffer.setSort(-1)
+        self.tex1 = self.buffer.getTexture()
+        #self.buffer2 = base.win.makeTextureBuffer( 'surface2', SIZE, SIZE )
+        #self.buffer2.setClearColor( Vec4( 0.5, 0.5, 0.5, 1 ) )
+        #self.buffer2.setSort(-2)
+        #self.tex2 = self.buffer2.getTexture()
+        self.tex2 = None
+        self.tex3 = None
+        #self.stored = False
+        self.att_height = demobase.Att_FloatRange(False,"height",0,50,18.65,3)
+        self.att_height.setNotifier(self.changeheight)
+        self.screenImage = None
+        self.screenImageNew = None
+        self.count = 0
+
+    def timer(self, task):
+        if self.tex2 != None and self.tex3 != None:
+            if True or self.count > 0:
+                self.count -= 1
+                base.graphicsEngine.extractTextureData(self.tex1, base.win.getGsg())
+                if self.screenImage == None:
+                   self.screenImage = PNMImage()
+                else:
+                   self.tex3.load(self.screenImage)
+                self.tex1.store(self.screenImage)
+                if self.screenImageNew != None:
+                    self.tex2.load(self.screenImageNew)
+                    self.screenImageNew = None
+                else:
+                    self.tex2.load(self.screenImage)
+                    #self.stored = True
+
+                    #data = StringStream()
+                    #self.tex1.writeTxo(data, "test.txo")
+                    #self.tex2.readTxo(data, "test.txo")
+                    #self.tex1.write(data, 0)
+                    #self.tex2.read(data)
+                    #self.tex1.write(Filename("tmp/test.png"))
+                    #self.tex2.read(Filename("tmp/test.png"))
+
+        render.setShaderInput('time', task.time)
+        render.setShaderInput("eyePositionW", Vec4(base.camera.getX(),base.camera.getY(),base.camera.getZ(),0.0));
+
+        # for demo 2 and 3
+        if self.image != None:
+            for x in range(SIZE):
+                for y in range(SIZE):
+                    v = (math.sin((x+y)/10 +  task.time) + 1) /2;
+                    self.image.setRed(x,y,v)
+            self.tex.load(self.image)
+        return task.cont
+
+    def LoadLights(self):
+        return
+
+
+    def LoadModels(self):
+        self.plane = None
+        self.plane2 = None
+        self.plane3 = None
+        self.buffer = None
+        self.actor = None
+        self.camera = None
+        return
+
+##        self.att_waveFreq = demobase.Att_FloatRange(False, "Water:Wave Freq", 0.0, 3, 0.5, 3)
+##        self.att_waveAmp = demobase.Att_FloatRange(False, "Water:Wave Amp", 0.0, 25.0, 1.8, 2)
+##        self.att_bumpSpeed = demobase.Att_Vecs(False,"Water:Bump Speed",2,(0.015,0.005), -0.1, 0.1)
+##        self.att_textureScale = demobase.Att_Vecs(False,"Water:Texture Scale",2,(25,25), 0, 40, 1)
+##        self.att_waveFreq.setNotifier(self.setPlaneShaderInput)
+##        self.att_waveAmp.setNotifier(self.setPlaneShaderInput)
+##        self.att_bumpSpeed.setNotifier(self.setPlaneShaderInput)
+##        self.att_textureScale.setNotifier(self.setPlaneShaderInput)
+
+    def ClearScene(self):
+        taskMgr.remove('mytimer')
+
+        self.Reset()
+        base.graphicsEngine.removeWindow(self.buffer)
+        self.buffer = None
+        #base.graphicsEngine.removeWindow(self.buffer2)
+        #self.buffer2 = None
+        self.textnode.removeNode()
+        self.att_cameracontrol.Destroy()
+        base.camera.detachNode()
+        self.DestroyAllLights()
+        render.removeChildren()
+        base.camera.reparentTo(render)
+
+    def Reset(self):
+        if self.camera != None:
+            self.camera.node().setInitialState(RenderState.makeEmpty())
+            #self.camera.node().setScene(render)
+            self.camera.removeNode()
+            self.camera = None
+        if self.plane != None:
+            self.plane.clearShader()
+            self.plane.removeNode()
+            self.plane = None
+            self.image = None
+        if self.plane2 != None:
+            self.plane2.clearShader()
+            self.plane2.removeNode()
+            self.plane2 = None
+        if self.plane3 != None:
+            self.plane3.clearShader()
+            self.plane3.removeNode()
+            self.plane3 = None
+##        if self.buffer != None:
+##            base.graphicsEngine.removeWindow(self.buffer)
+##            self.buffer = None
+        if self.actor != None:
+            self.actor.cleanup()
+            self.actor.removeNode()
+            self.actor = None
+        # clear other animation effects
+        if hasattr(self, "interval"):
+            self.interval.pause()
+        ShaderPool.releaseAllShaders()
+        render.setRenderModeFilled()
+
+    def Demo01(self):
+        """Clear all"""
+        self.Reset()
+
+    def Demo02(self):
+        """Wave 1"""
+        self.Reset()
+        #render.setRenderModeWireframe()
+        self.plane = geomutil.createPlane('myplane',50,50,50,50)
+        self.plane.reparentTo(render)
+        self.image = PNMImage(SIZE,SIZE)
+        self.tex = Texture()
+        self.tex.load(self.image)
+        self.plane.setTexture(self.tex)
+        self.plane.setRenderModeWireframe()
+
+        #myShader = demobase.loadShader("shaders/timevary2.sha")
+        myShader = loader.loadShader("shaders/test0.sha")
+        self.plane.setShader(myShader)
+        #self.setPlaneShaderInput(None)
+
+    def Demo03(self):
+        """Wave 2"""
+        self.Reset()
+        # create a plane
+        self.plane = geomutil.createPlane('myplane',50,50,1,1)
+        self.plane.reparentTo(render)
+
+        # buffer cannot be created here, otherwise it will crash in Windows
+        ## create a offscreen buffer
+##        self.buffer = base.win.makeTextureBuffer( 'surface', 128, 128)
+##        self.buffer.setClearColor( Vec4( 0, 0, 0, 1 ) )
+##        return
+
+        # set the buffer as a texture of the plane
+        self.image = PNMImage(SIZE,SIZE)
+##        tex0 = self.buffer.getTexture()
+##        tex0.setWrapU(Texture.WMClamp)
+##        tex0.setWrapV(Texture.WMClamp)
+##        ts0 = TextureStage( 'ts0' )
+##        self.tex = tex0
+##        self.plane.setTexture( ts0, tex0 )
+        self.tex = Texture()
+        self.plane.setTexture( self.tex )
+
+##    def Demo04(self):
+##        """Test Only"""
+##        self.Reset()
+##        # create a plane
+##        self.plane = geomutil.createPlane('myplane',50,50,1,1)
+##        self.plane.reparentTo(render)
+##
+##        # set the buffer as a texture of the plane
+###        self.image = PNMImage(64,64)
+##        tex0 = self.buffer.getTexture()
+##        #print tex0.getExpectedNumMipmapLevels()
+##        image = PNMImage(64,64)
+##        tex0.store(image)
+####        tex0.setWrapU(Texture.WMClamp)
+####        tex0.setWrapV(Texture.WMClamp)
+####        ts0 = TextureStage( 'ts0' )
+####        self.tex = tex0
+####        self.plane.setTexture( ts0, tex0 )
+##        tex = Texture()
+##        tex.load(image)
+##        self.plane.setTexture( tex )
+
+
+    def Demo05(self):
+        """Camera Test"""
+        self.Reset()
+        self.camera = base.makeCamera(self.buffer)
+
+        self.actor= Actor('panda.egg', {'walk' : 'panda-walk.egg'})
+        self.actor.setScale(2)
+        self.actor.loop("walk")
+        self.actor.reparentTo(render)
+
+        # set up camera
+        self.camera.node().setScene(self.actor)
+        self.camera.wrtReparentTo(render)
+        #self.camera.reparentTo(self.actor)
+
+        #taskMgr.step()
+        #base.graphicsEngine.extractTextureData(tex0, base.win.getGsg())
+        #self.card.setTexture(self.offscreenRenderTarget)
+
+        #base.graphicsEngine.removeWindow(self.offscreenBuffer)
+        #self.offscreenBuffer = None
+        #self.camera.removeNode()
+
+
+    def Demo06(self):
+        """Camera result set on a plane"""
+        self.Reset()
+        self.camera = base.makeCamera(self.buffer)
+
+        self.actor= Actor('panda.egg', {'walk' : 'panda-walk.egg'})
+        self.actor.setScale(2)
+        self.actor.loop("walk")
+        self.actor.reparentTo(render)
+
+        # create a plane
+        self.plane = geomutil.createPlane('myplane',50,50,1,1)
+        self.plane.reparentTo(render)
+        #tex1 = self.buffer.getTexture()
+        self.plane.setTexture(self.tex1)
+
+        # set up camera
+        # the newly create camera will take up the current camera's position
+        self.camera.wrtReparentTo(render)
+        self.camera.node().setScene(render)
+        # this shader remove the green channel of the texture
+        myShader = loader.loadShader("shaders/test1.sha")
+        self.plane.setShader(myShader)
+
+    def Demo07(self):
+        """Shader Test2 test"""
+        self.Reset()
+        self.camera = base.makeCamera(self.buffer)
+
+        self.plane2 = geomutil.createPlane('myplane',5,5,1,1)
+        self.plane2.reparentTo(render)
+        self.plane2.setHpr(0,90,0)
+        self.plane2.setPos(0,30,0)
+        self.tex2 = Texture()
+        self.tex2.read(Filename("tmp/test.png"))
+        self.plane2.setTexture(self.tex2)
+
+
+        # create a plane
+        self.plane = geomutil.createPlane('myplane',10,10,1,1)
+        self.plane.reparentTo(render)
+        ts1 = TextureStage( 'ts1' )
+        self.plane.setTexture(ts1,self.tex1)
+        ts2 = TextureStage( 'ts2' )
+        self.plane.setTexture(ts2,self.tex2)
+
+        # set up camera, look at the plane
+        self.camera.reparentTo(render)
+        self.camera.setPos(0,0,18.65)
+        self.camera.setHpr(0,-90,0)
+        self.camera.node().setScene(render)
+        #self.camera.node().setScene(self.plane)
+        myShader = loader.loadShader("shaders/test2.sha")
+        self.plane.setShader(myShader)
+
+
+    def Demo08(self):
+        """Shader test3 test"""
+        self.Reset()
+        self.camera = base.makeCamera(self.buffer)
+
+        self.plane2 = geomutil.createPlane('myplane',5,5,1,1)
+        self.plane2.reparentTo(render)
+        self.plane2.setHpr(0,90,0)
+        self.plane2.setPos(0,30,0)
+        self.tex2 = Texture()
+        self.tex2.read(Filename("tmp/test.png"))
+        self.tex3 = Texture()
+        self.tex3.read(Filename("tmp/test.png"))
+        self.plane2.setTexture(self.tex3)
+
+
+        # create a plane
+        self.plane = geomutil.createPlane('myplane',10,10,1,1)
+        self.plane.reparentTo(render)
+        self.plane.setPos(100,100,0)
+        ts1 = TextureStage( 'ts1' )
+        self.plane.setTexture(ts1,self.tex2)
+        ts2 = TextureStage( 'ts2' )
+        self.plane.setTexture(ts2,self.tex3)
+        ts3 = TextureStage( 'ts3' )
+        self.texd = loader.loadTexture("textures/dampening.tga")
+        #self.plane.setTexture(ts3,self.texd)
+
+        # set up camera, look at the plane
+        self.camera.reparentTo(render)
+        self.camera.setPos(100,100,18.65)
+        self.camera.setHpr(0,-90,0)
+        self.camera.node().setScene(render)
+        #self.camera.node().setScene(self.plane)
+        myShader = loader.loadShader("shaders/test4.sha")
+        self.plane.setShader(myShader)
+        #base.graphicsEngine.renderFrame()
+        #self.plane.clearShader()
+
+        self.plane3 = geomutil.createPlane('myplane',70,70,SIZE,SIZE)
+        self.plane3.reparentTo(render)
+        self.plane3.setTexture(self.tex2)
+        myShader = loader.loadShader("shaders/vertextexture.sha")
+        self.plane3.setShader(myShader)
+        #self.plane3.setRenderModeWireframe()
+
+    def Demo10(self):
+        """Advance 10"""
+        self.count = 10
+
+    def Demo11(self):
+        """Advance 100"""
+        self.count = 100
+
+
+    def Demo1(self):
+        """Advance 1"""
+        self.count = 1
+
+    def Demo09(self):
+        """Set map test"""
+        #base.graphicsEngine.extractTextureData(self.tex1, base.win.getGsg())
+        #self.tex1.write(Filename("tmp/test.png"))
+        tex = Texture()
+        tex.read(Filename("tmp/test3.png"))
+        #tex.store(self.screenImage)
+        self.screenImageNew = PNMImage(SIZE,SIZE)
+        tex.store(self.screenImageNew)
+
+    def Demo12(self):
+        """Rain drop"""
+        self.screenImageNew = PNMImage(SIZE,SIZE)
+        self.tex1.store(self.screenImageNew)
+        x1 = randint(SIZE/5,SIZE*4/5)
+        y1 = randint(SIZE/5,SIZE*4/5)
+        v = random()*0.2 + 0.25
+        #self.screenImageNew.fill(0.5,0.5,0.5)
+        r = randint(0,3)
+        for x in range(x1-r,x1+r+1):
+            for y in range(y1-r,y1+r+1):
+                self.screenImageNew.setRed(x,y,v)
+
+        self.screenImageNew.setRed(x,y,v)
+
+    def Demo13(self):
+        """test"""
+        filename = "tmp/plane_%d_%d_%d_%d.egg" % (50,50,64,64)
+        fn = Filename(filename)
+        if fn.exists():
+            self.waterplane = loader.loadModel(fn)
+            self.waterplane.setHpr(0,-90,0)
+            self.waterplane.flattenStrong()
+            self.waterplane.reparentTo(render)
+
+    def changeheight(self, object):
+        if self.camera != None:
+            self.camera.setZ(self.att_height.v)
+##    def setPlaneShaderInput(self, object):
+##        return
+##        self.plane.setShaderInput('waveInfo', Vec4( self.att_waveFreq.v, self.att_waveAmp.v, 0,0 ))
+##        bumpSpeed = self.att_bumpSpeed.getValue()
+##        textureScale = self.att_textureScale.getValue()
+##        self.plane.setShaderInput('param2', Vec4( bumpSpeed[0], bumpSpeed[1], textureScale[0], textureScale[1] ))
+

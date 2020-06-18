@@ -1,0 +1,65 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+//clcheung Mar 2009, base on The Cg Tutorial
+
+float3 refract(float3 I, float3 N, float etaRatio)
+{
+	float cosI = dot(-I, N);
+	float cosT2 = 1.0f - etaRatio * etaRatio * (1.0f - cosI * cosI);
+	float3 T = etaRatio * I + ((etaRatio * cosI - sqrt(abs(cosT2))) * N);
+	return T * (float3) (cosT2 > 0);
+}
+
+void vshader(
+    in float4 vtx_position : POSITION,
+	//in float2 vtx_texcoord0 : TEXCOORD0,
+	//in float4 vtx_color : COLOR0, 
+	in float3 vtx_normal: NORMAL,
+
+	in uniform float4 k_etaRatio,
+	in uniform float4 k_eyePositionW,
+	in uniform float4 k_fresnel,
+    uniform float4x4 mat_modelproj,
+	uniform in float4x4 trans_model_to_world,
+    out float4 l_position : POSITION,
+	//out float2 l_texcoord0 : TEXCOORD0,
+	out float4 l_reflectionFactor : COLOR0,
+	out float3 l_R : TEXCOORD0,
+	out float3 l_TRed : TEXCOORD1,
+	out float3 l_TGreen : TEXCOORD2,
+	out float3 l_TBlue : TEXCOORD3
+	)
+	
+{
+    l_position = mul(mat_modelproj, vtx_position);
+	float3 N = mul((float3x3)trans_model_to_world, vtx_normal);
+	N=normalize(N); 
+	float3 positionW = mul(trans_model_to_world,vtx_position).xyz; 
+	float3 I = normalize(positionW.xyz - k_eyePositionW.xyz); 	
+	l_R = reflect(I, N);
+
+	l_TRed = refract(I, N, k_etaRatio.x); // etaRatio
+	l_TGreen = refract(I, N, k_etaRatio.y); // etaRatio
+	l_TBlue = refract(I, N, k_etaRatio.z); // etaRatio
+	l_reflectionFactor = k_fresnel.z + k_fresnel.y * pow(1+dot(I,N), k_fresnel.x);
+}
+
+void fshader(
+    in float3 l_R : TEXCOORD0,
+	in float3 l_TRed : TEXCOORD1,
+	in float3 l_TGreen : TEXCOORD2,
+	in float3 l_TBlue : TEXCOORD3,
+	in uniform samplerCUBE k_texcube : TEXUNIT0,
+    in float4 l_reflectionFactor : COLOR0,
+    out float4 o_color: COLOR0
+    )
+{
+    float4 reflectedColor = texCUBE(k_texcube, l_R);
+	float4 refractedColor;
+	refractedColor.r = texCUBE(k_texcube, l_TRed).r;
+	refractedColor.g = texCUBE(k_texcube, l_TGreen).g;
+	refractedColor.b = texCUBE(k_texcube, l_TBlue).b;
+	refractedColor.a = 1;
+	
+	o_color = lerp(refractedColor, reflectedColor, l_reflectionFactor); 
+}                             

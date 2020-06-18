@@ -1,0 +1,94 @@
+//Cg
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+	in float2 vtx_texcoord0 : TEXCOORD0,
+    out float2 l_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+	l_texcoord0 = vtx_texcoord0;
+}
+
+int inrange(float2 v)
+{
+	return (v.x >=0 && v.x <= 1 && v.y >= 0 && v.y <= 1);
+}
+void fshader(
+	in float2 l_texcoord0 : TEXCOORD0,
+    in uniform sampler2D tex_0 : TEXUNIT0,
+    in uniform sampler2D tex_1 : TEXUNIT1,
+    in uniform sampler2D tex_2 : TEXUNIT2,
+    out float4 o_color : COLOR)
+{
+  float v = 1.0/64.0;
+  float2 psSimulationGridSize = float2(10 * v, 10 * v);
+  
+  float2 psSimulationTexCoordDelta_x0y1 = float2(-v,0);
+  float2 psSimulationTexCoordDelta_x2y1 = float2(v,0);
+  float2 psSimulationTexCoordDelta_x1y0 = float2(0,-v);
+  float2 psSimulationTexCoordDelta_x1y2 = float2(0,v);
+  float height_x1y1,height_x0y1,height_x2y1,height_x1y0,height_x1y2;
+  float2 x;
+  height_x1y1 = tex2D(tex_0, l_texcoord0).x;
+  height_x1y1 = (height_x1y1 -0.5) * 2;
+  
+  x = l_texcoord0 + psSimulationTexCoordDelta_x0y1;
+  if (inrange(x)) {
+	height_x0y1 = tex2D(tex_0, x).x;
+	height_x0y1 = (height_x0y1 -0.5) * 2;
+  } else {
+	height_x0y1 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x2y1;
+  if (inrange(x)) {
+	height_x2y1 = tex2D(tex_0, x).x;
+	height_x2y1 = (height_x2y1 -0.5) * 2;
+  } else {
+	height_x2y1 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x1y0;
+  if (inrange(x)) {
+	height_x1y0 = tex2D(tex_0, x).x;
+	height_x1y0 = (height_x1y0 -0.5) * 2;
+  } else {
+	height_x1y0 = 0;
+  }
+  x = l_texcoord0 + psSimulationTexCoordDelta_x1y2;
+  if (inrange(x)) {
+	height_x1y2 = tex2D(tex_0, x).x;
+	height_x1y2 = (height_x1y2 -0.5) * 2;
+  } else {
+	height_x1y2 = 0;
+  }
+	
+  float previousHeight = tex2D(tex_1, l_texcoord0).x;
+  previousHeight = (previousHeight -0.5) * 2;
+  float4 dampening=tex2D(tex_2, l_texcoord0).x;
+  //float psSimulationWaveSpeedSquared=0.9;
+  float psSimulationWaveSpeedSquared=30;
+  float acceleration = dampening * psSimulationWaveSpeedSquared * (height_x0y1 + height_x2y1 + height_x1y0 + height_x1y2 - 4.0 * height_x1y1);
+
+
+  // Do Verlet integration
+  //float2 psSimulationPositionWeighting = float2(1.99,0.99);
+  float2 psSimulationPositionWeighting = float2(1.8,0.99);
+  //float psSimulationOneHalfTimesDeltaTimeSquared = 1;
+  float psSimulationOneHalfTimesDeltaTimeSquared = 0.01;
+  //float psSimulationOneHalfTimesDeltaTimeSquared = 0.005;
+  //float psSimulationOneHalfTimesDeltaTimeSquared = 0.001;
+  float newHeight = psSimulationPositionWeighting.x * height_x1y1 - 
+              psSimulationPositionWeighting.y * previousHeight + 
+              psSimulationOneHalfTimesDeltaTimeSquared * acceleration;
+  //newHeight *= 0.98;
+  newHeight *= saturate(dampening+0.5);
+  newHeight = saturate(newHeight/2 + 0.5);
+  // Calculate the normal
+  float3 dzdx = float3(psSimulationGridSize.x, 0.0, height_x2y1 - height_x1y1);
+  float3 dzdy = float3(0.0, -psSimulationGridSize.y, height_x1y2 - height_x1y1);
+  float3 normal = cross(dzdx, dzdy);
+  normal = (normalize(normal)/2) + 0.5;
+  //o_color = float4(newHeight,newHeight,newHeight,1);
+  o_color.x = newHeight;
+  o_color.yzw = normal.xyz;
+}

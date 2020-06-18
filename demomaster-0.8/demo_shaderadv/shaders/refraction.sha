@@ -1,0 +1,48 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+//clcheung Mar 2009, base on The Cg Tutorial
+float3 refract(float3 I, float3 N, float etaRatio)
+{
+	float cosI = dot(-I, N);
+	float cosT2 = 1.0f - etaRatio * etaRatio * (1.0f - cosI * cosI);
+	float3 T = etaRatio * I + ((etaRatio * cosI - sqrt(abs(cosT2))) * N);
+	return T * (float3) (cosT2 > 0);
+}
+
+void vshader(
+    in float4 vtx_position : POSITION,
+	//in float2 vtx_texcoord0 : TEXCOORD0,
+	in float4 vtx_color : COLOR0, 
+	in float3 vtx_normal: NORMAL,
+
+	in uniform float4 k_etaRatio,
+	in uniform float4 k_eyePositionW,
+    uniform float4x4 mat_modelproj,
+	uniform in float4x4 trans_model_to_world,
+    out float4 l_position : POSITION,
+	//out float2 l_texcoord0 : TEXCOORD0,
+	out float4 l_color : COLOR0, 
+	out float3 l_T : TEXCOORD1)
+	
+{
+    l_position = mul(mat_modelproj, vtx_position);
+	//l_texcoord0 = vtx_texcoord0;
+	l_color = vtx_color; 
+	float3 positionW = mul(trans_model_to_world,vtx_position).xyz; 
+	float3 N = mul((float3x3)trans_model_to_world, vtx_normal);
+	N=normalize(N); 
+	float3 I = normalize(positionW.xyz - k_eyePositionW.xyz); 	
+	l_T = refract(I, N, k_etaRatio.x); // etaRatio
+}
+
+void fshader(
+	in uniform float4 k_param1,
+    in float3 l_T : TEXCOORD1,
+	in uniform samplerCUBE k_texcube : TEXUNIT0,
+    in float4 l_color        : COLOR0,
+    out float4 o_color: COLOR0
+    )
+{
+    float4 refractedColor = texCUBE(k_texcube, l_T);
+	o_color = lerp(l_color, refractedColor, k_param1.y); // transmittance
+}                             

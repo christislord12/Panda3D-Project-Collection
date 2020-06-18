@@ -1,0 +1,32 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: sun shader
+
+void vshader(
+             float4 vtx_position : POSITION,
+             float2 vtx_texcoord0 : TEXCOORD0,
+             uniform float4x4 mat_modelproj,
+             out float2 l_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION
+             )
+{
+  l_position = mul(mat_modelproj, vtx_position);
+  l_texcoord0=vtx_texcoord0;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_time,
+			 uniform sampler2D k_tex1 : TEXUNIT0,
+			 uniform sampler2D k_tex2 : TEXUNIT1,
+			 uniform sampler2D k_fire : TEXUNIT2)
+{
+   float2 off1 = float2(0.01,0.01) * k_time.x * 3;
+   float2 off2 = float2(-0.02,-0.03) * k_time.x * 3;
+   float c1 = tex2D(k_tex1, l_texcoord0 + off1).x;
+   float c2 = tex2D(k_tex2, l_texcoord0 + off2).x;
+   float v = saturate(c1+c2-0.2);
+   //v = c2;
+   //o_color = tex2D(k_fire, float2(v,0)) + float4(0.1,0.1,0.1,1);
+   o_color = tex2D(k_fire, float2(v,0));
+}

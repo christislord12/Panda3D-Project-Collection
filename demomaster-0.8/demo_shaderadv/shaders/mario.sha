@@ -1,0 +1,47 @@
+//Cg
+
+void vshader(
+             float4 vtx_position : POSITION,
+             float2 vtx_texcoord0 : TEXCOORD0,
+             float3 vtx_normal : NORMAL,
+             uniform float4x4 mat_modelproj,
+             uniform float4 mspos_cam,
+             uniform float4 mspos_light,
+
+          out float  l_smooth,
+          out float  l_facingRatio,
+             out float2 l_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION
+             )
+{
+  // SMOOTH SHADING : dot product ranges from -1~1, scale it so I get 0~1,
+  // but before it, I set the ambient light to .2,
+  // so it's .5/2.5 (2.5 is -1.5~1 range), add the .5 to the dark side
+  l_smooth = smoothstep( -1.5,1,dot(vtx_normal, normalize(mspos_light-vtx_position)) );
+  l_facingRatio = pow( 1.0-saturate( dot(vtx_normal, normalize(mspos_cam-vtx_position)) ), 2 );
+  l_position = mul(mat_modelproj, vtx_position);
+  l_texcoord0=vtx_texcoord0;
+}
+
+void fshader(
+             
+			 in float2 l_texcoord0: TEXCOORD0,
+          in float  l_smooth,
+             in float  l_facingRatio,
+			 uniform float4 k_param2,
+             sampler2D tex_0 : TEXUNIT0,
+				
+             out float4 o_color:COLOR)
+{
+  float4 tex = tex2D(tex_0, l_texcoord0);
+  
+  //if (tex[0] > tex[1]) {
+  //	float r = ;
+  
+  float4 texdown = tex / k_param2.y;
+  float4 mariocolor = tex * k_param2.x;
+  //float4 white = (1.0, 0.0, 1.0, 1.0);
+  //   o_color = float4( tex.rgb*l_smooth, tex.a );
+  //float4 blendcolor = (lerp(tex.rgb*l_smooth, mariocolor.rgb, l_facingRatio) , tex.a );
+  o_color = float4(lerp(texdown.rgb*l_smooth, mariocolor.rgb, l_facingRatio) , tex.a );
+}

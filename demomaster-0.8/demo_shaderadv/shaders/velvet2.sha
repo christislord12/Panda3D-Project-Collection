@@ -1,0 +1,58 @@
+//Cg
+void vshader(
+    uniform float4x4 mat_modelproj,
+	uniform in float4x4 trans_model_to_world,
+    in float4 vtx_position : POSITION,
+    in float3 vtx_normal : NORMAL,
+    in float4 vtx_color : COLOR,
+	uniform float4 k_eyePositionW,
+    out float4 l_color : COLOR,
+    out float3 l_myposition : TEXCOORD0,
+    out float3 l_mynormal : TEXCOORD1,
+	out float3 l_Eye : TEXCOORD2,
+    out float4 l_position : POSITION
+)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+
+    l_myposition = vtx_position.xyz;
+
+    l_mynormal = normalize(vtx_normal);
+
+    l_color = vtx_color;
+
+	float3 positionW = mul(trans_model_to_world,vtx_position).xyz; 
+	float3 I = positionW - k_eyePositionW.xyz;
+	l_Eye = normalize(I);
+}
+
+
+void fshader(
+    uniform float4 mspos_light,
+	uniform float4 k_velvet,
+	uniform float4 k_atten,
+    in float3 l_myposition : TEXCOORD0,
+    in float3 l_mynormal : TEXCOORD1,
+	in float3 l_Eye : TEXCOORD2,
+    in float4 l_color : COLOR,
+    out float4 o_color : COLOR)
+{
+	float velvet_exponent = k_velvet.x;
+    float3 lightposition = mspos_light.xyz;
+    float3 modelposition = l_myposition;
+    float3 normal = normalize(l_mynormal);
+    float3 direction = lightposition - modelposition;
+    //float brightness = saturate(dot(normal, direction));
+	//float3 latten = float3(0.1,0.04,0);
+	float3 latten = k_atten;
+	float ldist = length(direction);
+	float lattenv = 1/(latten.x + latten.y*ldist + latten.z*ldist*ldist);
+	float l = pow(saturate(dot(normal, normalize(direction))), velvet_exponent);
+	float e = pow(saturate(dot(normal, -l_Eye)), -velvet_exponent);
+	//o_color = l_color * clamp(l*e,0,1) * lattenv;
+	o_color = float4(0.8,0.2,0.2,1) * clamp(l*e,0,1) * lattenv;
+	//o_color = float4(1,0,0,1) * clamp(l*e,0,1);
+
+    //float brightness = saturate(dot(normal, normalize(direction)));
+	//o_color = l_color * brightness * lattenv;
+}
