@@ -1,0 +1,109 @@
+//Cg
+
+float pack (float3 a, float max_val)
+{
+    //a = a * 256;
+    return (a.x * 0xffffff + a.y * 0x00ffff + a.z * 0x0000ff) / 0xffffff * max_val;
+}
+ 
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    out float2 l_texcoord1 : TEXCOORD1,
+    uniform float4 texpad_color,
+    uniform float4x4 mat_modelproj,
+    //uniform float rotation)
+    uniform float4x4 k_rotation)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_color.xy + texpad_color.xy;
+    //float2x2 uv_rot = float2x2(k_rotation[0][0], k_rotation[2][0],
+    //                           k_rotation[0][2], k_rotation[2][2]);
+    l_texcoord1 = float2(l_texcoord0.x + k_rotation[0][0] * 0.2,  l_texcoord0.y + k_rotation[2][0] * 0.2);
+    //l_texcoord1 = mul(uv_rot, vtx_position.xz * texpad_color.xy);
+}
+ 
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             float2 l_texcoord1 : TEXCOORD1,
+             out float4 o_color : COLOR,
+             uniform float4 texpad_color,
+             uniform sampler2D k_color : TEXUNIT0,
+             uniform sampler2D k_ccolor : TEXUNIT1,
+             uniform sampler2D k_cdepth : TEXUNIT2,
+             uniform sampler2D k_maindepth : TEXUNIT3,
+             uniform sampler2D k_ssao : TEXUNIT4,
+             uniform sampler2D k_distort : TEXUNIT5)
+{
+    float CAM_FAR = 100;
+    //float4 cz = tex2D(k_cdepth, l_texcoord0 + d);
+    //float4 cz = tex2D(k_cdepth, l_texcoord0);
+    float mz = tex2D(k_maindepth, l_texcoord0).x;
+    float4 mc = tex2D(k_color, l_texcoord0);
+    float2 d = (tex2D(k_distort, l_texcoord1).xy - 0.5) * 0.02;
+   
+    
+        float2 samples[12] = {
+        -0.326212, -0.405805,
+        -0.840144, -0.073580,
+        -0.695914, 0.457137,
+        -0.203345, 0.620716,
+        0.962340, -0.194983,
+        0.473434, -0.480026,
+        0.519456, 0.767022,
+        0.185461, -0.893124,
+        0.507431, 0.064425,
+        0.896420, 0.412458,
+        -0.321940, -0.932615,
+        -0.791559, -0.597705
+        };
+
+    //mz = 0;
+    float cz = 0;
+    float4 tmp = 0;
+    float4 cc = 0;
+    float2 ccoord = 0;
+    float2 blurcoord = 0;
+    float3 ssao_val = 0;
+    int zcount = 0;
+    for(int i = 0 ; i < 12 ; i++)
+    {
+        ccoord = l_texcoord0 + samples[i] * 0.005 + d;
+        ccoord.x = clamp(ccoord.x, 0.001, texpad_color.x * 1.99);
+        ccoord.y = clamp(ccoord.y, 0.001, texpad_color.y * 1.99);
+        //cc += tex2D(k_ccolor, l_texcoord0 + samples[i] * 0.006 + d );
+        //zcount += (mz + 0.0000001 > tex2D(k_cdepth, l_texcoord0 + samples[i] * 0.006 + d));
+        cc += tex2D(k_ccolor, ccoord);
+        //zcount += (tex2D(k_maindepth, ccoord) + 0.0000001 > tex2D(k_cdepth, ccoord));
+        //mz += tex2D(k_maindepth, ccoord);
+        tmp = tex2D(k_cdepth, ccoord).x;
+        zcount += (mz + 0.0000001 > tmp);
+        cz = max(cz, tmp * (tmp < mz));
+        
+        blurcoord = l_texcoord0 + samples[i] * 0.005;
+        blurcoord.x = clamp(blurcoord.x, 0.001, texpad_color.x * 1.99);
+        blurcoord.y = clamp(blurcoord.y, 0.001, texpad_color.y * 1.99);
+        //ssao_val += tex2D(k_ssao, blurcoord) * 
+        //            (abs(tex2D(k_maindepth, blurcoord).x - mz) > 0.01);
+        ssao_val += tex2D(k_ssao, blurcoord) ;
+    }
+    cc /= 12;
+    ssao_val /= 12;
+
+    float n = 1.0; // camera z near
+    float f = 100.0; // camera z far
+    float lmz = (2.0 * n) / (f + n - mz * (f - n));
+    float lcz = (2.0 * n) / (f + n - cz * (f - n));
+
+    float old_a = saturate(cc.a * 1.5);// + (1 - (cc.x + cc.y + cc.z)/3)*0.3;
+    cc.a = (lmz - lcz) * lmz * 1000 * cc.a * cc.a;
+    cc = saturate(cc);
+    //cc.a = min(old_a, cc.a);
+    //cc.a *= old_a;
+
+
+    o_color  = float4(mc.xyz * (1 - cc.a * (zcount > 0)) + cc.xyz * cc.a * (zcount > 0), 1);
+    o_color *= pow(float4(ssao_val,1),2)*2;
+
+}

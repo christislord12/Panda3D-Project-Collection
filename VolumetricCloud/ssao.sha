@@ -1,0 +1,77 @@
+//Cg
+
+ 
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    uniform float4 texpad_maindepth,
+    uniform float4x4 mat_modelproj)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_maindepth.xy + texpad_maindepth.xy;
+    l_texcoord0.x = clamp(l_texcoord0.x, 0.005, texpad_maindepth.x * 1.99);
+    l_texcoord0.y = clamp(l_texcoord0.y, 0.005, texpad_maindepth.y * 1.99);
+}
+ 
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             float2 l_texcoord1 : TEXCOORD1,
+             out float4 o_color : COLOR,
+             uniform float4 texpad_maindepth,
+             uniform sampler2D k_cdepth : TEXUNIT0,
+             uniform sampler2D k_maindepth : TEXUNIT1,
+             uniform sampler2D k_noise : TEXUNIT4)
+{
+    float CAM_FAR = 100;
+    
+    float2 samples[12] = {   // Sampler
+        -0.326212, -0.405805,
+        -0.840144, -0.073580,
+        -0.695914, 0.457137,
+        -0.203345, 0.620716,
+        0.962340, -0.194983,
+        0.473434, -0.480026,
+        0.519456, 0.767022,
+        0.185461, -0.893124,
+        0.507431, 0.064425,
+        0.896420, 0.412458,
+        -0.321940, -0.932615,
+        -0.791559, -0.597705
+        };
+    
+    float mz = tex2D(k_maindepth, l_texcoord0).x; // Main depth
+    float cz = tex2D(k_cdepth, l_texcoord0).x;   // Smoke depth
+
+    float n = 1.0; // camera z near
+    float f = 100.0; // camera z far
+    float lmz = (2.0 * n) / (f + n - mz * (f - n)); // Linear main depth
+    float lcz = (2.0 * n) / (f + n - cz * (f - n)); // Linear smoke depth
+
+    
+    
+    float acc = 0; // Tests accumulator
+    float sd = 0;  // Sample depth
+    float lsd = 0; // Linear sample depth
+    float dz = 0;  // Delta depth
+    
+    float2 nd = (tex2D(k_noise, l_texcoord0 * 120).xy - 0.5) * 0.05; //Noise displace
+    for(int i = 0 ; i < 12 ; i++){
+        sd = min(tex2D(k_maindepth, l_texcoord0 + samples[i].xy * 0.05 + nd).x,
+                 tex2D(k_cdepth, l_texcoord0 + samples[i].xy * 0.05 + nd).x);
+        lsd = (2.0 * n) / (f + n - sd * (f - n)); 
+        dz = lmz - lsd;
+        acc += saturate(max(1 - dz * 10000, 0) + abs(dz) * 30);
+    }
+    
+    nd = (tex2D(k_noise, l_texcoord0 * 120).xy - 0.5) * 0.05; //Noise displace
+    for(int i = 0 ; i < 6 ; i++){
+        sd = min(tex2D(k_maindepth, l_texcoord0 + samples[i*2].xy * 0.015 + nd).x,
+                 tex2D(k_cdepth, l_texcoord0 + samples[i*2].xy * 0.015 + nd).x);
+        lsd = (2.0 * n) / (f + n - sd * (f - n)); 
+        dz = lmz - lsd;
+        acc += saturate(max(1 - dz * 10000, 0) + abs(dz) * 30);
+    }
+
+    o_color = acc/18;
+}

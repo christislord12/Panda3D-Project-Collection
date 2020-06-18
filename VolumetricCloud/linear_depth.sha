@@ -1,0 +1,52 @@
+//Cg
+float3  unpack(float a, float max_val)
+{
+  float3 result ;
+  a = a / max_val * 0xffffff;
+  //result.x = ((a >> 0) & 0xFF) / 255.0;
+  //result.y = ((a >> 8) & 0xFF) / 255.0;
+  //result.z = ((a >> 16) & 0xFF) / 255.0;
+  //result.w = ((a >> 24) & 0xFF) / 255.0;
+  result.x = floor(a / 0xffff);
+  result.y = floor((a - result.x * 0xffff) / 0x00ff);
+  result.z = floor(a - result.x * 0xffff - result.y * 0x00ff);
+  return result/256;
+}
+
+void vshader(float4 vtx_position : POSITION,
+             //float4 vtx_color: COLOR,
+             //float4 vtx_normal : NORMAL, 
+             out float4 l_position : POSITION,
+             //out float3 l_color0 : COLOR0,
+             //out float3 l_normal : TEXCOORD0,
+             out float2 l_depth : TEXCOORD1,
+             //uniform float4 mspos_cam,
+             uniform float4 wspos_cam,
+             //uniform float4 mspos_light,
+             uniform float4x4 mat_modelproj,
+             uniform float4x4 trans_model_to_world)
+{
+  l_position = mul(mat_modelproj, vtx_position);
+  //l_color0 = vtx_color;
+  //l_normal = pow(dot(vtx_normal, normalize(mspos_cam-vtx_position)), 3);
+  l_depth = distance(wspos_cam, mul(trans_model_to_world, vtx_position));
+  
+  //l_depth = d/100;//unpack_4ubyte(ceil(d));
+  //l_color0 = unpack(d, 100);
+  //l_normal = vtx_normal;
+  //l_smooth = smoothstep( -1.5,1,dot(vtx_normal, normalize(mspos_light-vtx_position)) );
+}
+ 
+void fshader(//float3 l_color0 : COLOR0,
+             //float3 l_normal : TEXCOORD0,
+             float3 l_depth : TEXCOORD1,
+             //uniform half4 mspos_light,
+             //out float3 o_color : COLOR,
+             out float o_Depth : DEPTH)
+{
+  //o_color=float4(l_color0[1],l_color0[0], l_color0[2],l_color0[3]);
+  //o_color=float4(l_normal, 1);
+  //o_color=float4(l_color0.xyz * l_smooth.x, l_color0.a );
+  //o_color = l_color0;
+  o_Depth = l_depth.x/100;
+}

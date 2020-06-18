@@ -1,0 +1,30 @@
+//Cg
+
+void vshader(float4 vtx_position : POSITION,
+             float4 vtx_color: COLOR,
+             float4 vtx_normal : NORMAL, 
+             out float4 l_position : POSITION,
+             out float4 l_color0 : COLOR0,
+             out float3 l_normal : TEXCOORD0,
+             //out float3 l_smooth : TEXCOORD1,
+             uniform float4 mspos_cam,
+             //uniform float4 mspos_light,
+             uniform float4x4 mat_modelproj)
+{
+  l_position = mul(mat_modelproj, vtx_position);
+  l_color0 = vtx_color;
+  l_normal = pow(dot(vtx_normal, normalize(mspos_cam-vtx_position)), 3);
+  //l_normal = vtx_normal;
+  //l_smooth = smoothstep( -1.5,1,dot(vtx_normal, normalize(mspos_light-vtx_position)) );
+}
+ 
+void fshader(float4 l_color0 : COLOR0,
+             float3 l_normal : TEXCOORD0,
+             float3 l_smooth : TEXCOORD1,
+             uniform float4 mspos_light,
+             out float4 o_color : COLOR)
+{
+  //o_color=float4(l_color0[1],l_color0[0], l_color0[2],l_color0[3]);
+  o_color=float4(l_normal, 1);
+  //o_color=float4(l_color0.xyz * l_smooth.x, l_color0.a );
+}
