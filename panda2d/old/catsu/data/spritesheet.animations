@@ -1,0 +1,65 @@
+Blast
+{
+  looping: True
+  frame: bomb1, 0, 0, 100
+  frame: bomb2, 0, 0, 100
+  frame: bomb3, 0, 0, 100
+  frame: bomb4, 0, 0, 100
+  frame: bomb5, 0, 0, 100
+  frame: bomb6, 0, 0, 100
+  frame: bomb7, 0, 0, 100
+  frame: bomb8, 0, 0, 100
+  frame: bomb9, 0, 0, 100
+  frame: bomb10, 0, 0, 100
+  frame: bomb11, 0, 0, 100
+}
+Cat Jumping
+{
+  looping: False
+  frame: gato, 0, 0, 100
+}
+Rat Dying
+{
+  looping: False
+  frame: rata, 0, 0, 100
+}
+Ghost
+{
+  looping: True
+  frame: ghost, 0, 0, 100
+}
+Ghost Dying
+{
+  looping: True
+  frame: ghost, 0, 0, 100
+}
+cat_walking
+{
+  looping: True
+  frame: cat_walking_0002, 0, 0, 100
+  frame: cat_walking_0001, 0, 0, 100
+  frame: cat_walking_0000, 0, 0, 100
+}
+cat_hit
+{
+  looping: True
+  frame: cat_hit_001, 0, 0, 100
+  frame: cat_hit_002, 0, 0, 150
+  frame: cat_hit_003, 0, 0, 150
+  frame: cat_hit_004, 0, 0, 200
+}
+cat_jump
+{
+  looping: True
+  frame: cat_jump_002, 0, 0, 100
+  frame: cat_jump_003, 0, 0, 100
+  frame: cat_jump_004, 0, 0, 100
+}
+ghost
+{
+  looping: True
+  frame: ghost_stand_1, 0, 0, 200
+  frame: ghost_stand_0, 0, 0, 200
+  frame: ghost_stand_2, 0, 0, 200
+  frame: ghost_stand_3, 0, 0, 200
+}
