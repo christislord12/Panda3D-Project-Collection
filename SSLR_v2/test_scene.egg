@@ -1,0 +1,160 @@
+<CoordinateSystem> { Z-Up }
+
+<Comment> {
+  "egg-trans -tbnall -o 'D:\work\models\test_scene.egg' 'D:\work\models\test_scene.egg'"
+}
+<Texture> Texture.010 {
+  "tex/trak4_brick1_nm.tga"
+  <Scalar> wrap { repeat }
+  <Scalar> minfilter { linear_mipmap_linear }
+  <Scalar> magfilter { linear_mipmap_linear }
+  <Scalar> envtype { normal }
+}
+<Texture> Texture.009 {
+  "tex/trak4_brick1.tga"
+  <Scalar> wrap { repeat }
+  <Scalar> minfilter { linear_mipmap_linear }
+  <Scalar> magfilter { linear_mipmap_linear }
+  <Scalar> envtype { modulate }
+}
+<Material> Material.003 {
+  <Scalar> diffr { 0.64 }
+  <Scalar> diffg { 0.64 }
+  <Scalar> diffb { 0.64 }
+  <Scalar> emitr { 0 }
+  <Scalar> emitg { 0 }
+  <Scalar> emitb { 0 }
+  <Scalar> specr { 0.19863 }
+  <Scalar> specg { 0.19863 }
+  <Scalar> specb { 0.19863 }
+  <Scalar> shininess { 12.5 }
+}
+<Group> Cube.001 {
+  <Transform> {
+    <Matrix4> {
+      1 0 0 0
+      0 1 0 0
+      0 0 1 0
+      0 0 1 1
+    }
+  }
+  <VertexPool> Cube.001 {
+    <Vertex> 0 {
+      -1 -1 0
+      <UV> {
+        0.0001 0.0001
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 1 0 }
+      }
+    }
+    <Vertex> 1 {
+      -1 -1 0
+      <UV> {
+        0.0001 0.0001
+        <Tangent> { 0 1 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 2 {
+      -1 -1 2
+      <UV> {
+        0.0001 0.9999
+        <Tangent> { 0 1 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 3 {
+      -1 1 0
+      <UV> {
+        0.0001 0.0001
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 4 {
+      -1 1 0
+      <UV> {
+        0.0001 0.9999
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 1 0 }
+      }
+    }
+    <Vertex> 5 {
+      -1 1 0
+      <UV> {
+        0.9999 0.0001
+        <Tangent> { 0 1 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 6 {
+      -1 1 2
+      <UV> {
+        0.0001 0.9999
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 7 {
+      -1 1 2
+      <UV> {
+        0.9999 0.9999
+        <Tangent> { 0 1 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 8 {
+      1 -1 0
+      <UV> {
+        0.9999 0.0001
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 1 0 }
+      }
+    }
+    <Vertex> 9 {
+      1 1 0
+      <UV> {
+        0.9999 0.0001
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+    <Vertex> 10 {
+      1 1 0
+      <UV> {
+        0.9999 0.9999
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 1 0 }
+      }
+    }
+    <Vertex> 11 {
+      1 1 2
+      <UV> {
+        0.9999 0.9999
+        <Tangent> { 1 0 0 }
+        <Binormal> { 0 0 1 }
+      }
+    }
+  }
+  <Polygon> {
+    <Normal> { 1 0 0 }
+    <TRef> { Texture.009 }
+    <TRef> { Texture.010 }
+    <MRef> { Material.003 }
+    <VertexRef> { 2 1 5 7 <Ref> { Cube.001 } }
+  }
+  <Polygon> {
+    <Normal> { 0 -1 0 }
+    <TRef> { Texture.009 }
+    <TRef> { Texture.010 }
+    <MRef> { Material.003 }
+    <VertexRef> { 6 3 9 11 <Ref> { Cube.001 } }
+  }
+  <Polygon> {
+    <Normal> { 0 0 1 }
+    <TRef> { Texture.009 }
+    <TRef> { Texture.010 }
+    <MRef> { Material.003 }
+    <VertexRef> { 0 8 10 4 <Ref> { Cube.001 } }
+  }
+}

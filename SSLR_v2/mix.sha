@@ -1,0 +1,28 @@
+//Cg
+        
+void vshader(
+    float4 vtx_position : POSITION,
+    float2 vtx_texcoord0 : TEXCOORD0,
+    out float4 l_position : POSITION,
+    out float2 l_texcoord0 : TEXCOORD0,
+    out float2 l_texcoord1 : TEXCOORD1,
+    uniform float4 texpad_albedo,
+    uniform float4 texpad_reflection,
+    uniform float4x4 mat_modelproj)
+{
+    l_position=mul(mat_modelproj, vtx_position);
+    l_texcoord0 = vtx_position.xz * texpad_albedo.xy + texpad_albedo.xy;
+    l_texcoord1 = vtx_position.xz * texpad_reflection.xy + texpad_reflection.xy;
+}
+ 
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             float2 l_texcoord1 : TEXCOORD1,
+             out float4 o_color : COLOR,
+             uniform sampler2D albedo : TEXUNIT0,
+             uniform sampler2D reflection : TEXUNIT1)
+{
+    float4 A = tex2D(albedo, l_texcoord0);
+    float4 R = tex2D(reflection, l_texcoord1);
+    o_color  = float4(A.rgb * (1 - R.a) + R.rgb * R.a, A.a);
+
+}
