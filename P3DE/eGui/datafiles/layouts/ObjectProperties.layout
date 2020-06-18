@@ -1,0 +1,121 @@
+<?xml version="1.0" ?>
+<GUILayout>
+
+        <Window Type="Vanilla/FrameWindow" Name="ObjectProperties/FrameWindow">
+            <Property Name="UnifiedPosition" Value="{{0.7,0},{0.0,0}}" />
+            <Property Name="UnifiedSize" Value="{{0.3,0},{1.0,0}}" />
+            <Property Name="SizingEnabled" Value="False" />
+            <Property Name="DragMovingEnabled" Value="False" />
+            <Property Name="Text" Value="Object Settings" />
+            <Property Name="CloseButtonEnabled" Value="False" />
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/NPNameLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{0,90},{0,30}}" />
+                <Property Name="Text" Value="NP Name:" />
+            </Window>
+            
+            <Window Type="Vanilla/Editbox" Name="ObjectProperties/NPNameEditbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{0,90},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{1,-90},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/LockLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,30}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Lock:" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="ObjectProperties/LockCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,30}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/LightingLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,60}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Lighting:" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="ObjectProperties/LightingCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,60}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/ShaderLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,90}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Shading (PPL):" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="ObjectProperties/ShaderCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,90}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/WireframeLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,120}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Wireframe:" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="ObjectProperties/WireframeCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,120}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="ObjectProperties/HiddenLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,150}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Hidden:" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="ObjectProperties/HiddenCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,150}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/Button" Name="ObjectProperties/ClearHeadButton">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,180}}" />
+                <Property Name="UnifiedSize" Value="{{0.25,0},{0,30}}" />
+                <Property Name="Text" Value="H = 0" />
+            </Window>
+            
+            <Window Type="Vanilla/Button" Name="ObjectProperties/ClearPitchButton">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0.33,20},{0,180}}" />
+                <Property Name="UnifiedSize" Value="{{0.25,0},{0,30}}" />
+                <Property Name="Text" Value="P = 0" />
+            </Window>
+            
+            <Window Type="Vanilla/Button" Name="ObjectProperties/ClearRollButton">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0.66,20},{0,180}}" />
+                <Property Name="UnifiedSize" Value="{{0.25,0},{0,30}}" />
+                <Property Name="Text" Value="R = 0" />
+            </Window>
+
+        </Window>
+</GUILayout>

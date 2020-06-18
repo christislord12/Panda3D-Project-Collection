@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<GUILayout>
+    <Window Type="Vanilla/StaticImage" Name="rootz">
+        <Property Name="UnifiedPosition" Value="{{0.0,0},{0.0,0}}" />
+        <Property Name="UnifiedSize" Value="{{1.0,0},{1.0,0}}" />
+        <Property Name="FrameEnabled" Value="False" />
+        <Property Name="BackgroundEnabled" Value="False" />
+        <Window Type="Vanilla/FrameWindow" Name="FileManager/FrameWindow">
+            <Property Name="UnifiedPosition" Value="{{0.7,0},{0.0,0}}" />
+            <Property Name="UnifiedSize" Value="{{0.3,0},{1.0,0}}" />
+            <Property Name="SizingEnabled" Value="False" />
+            <Property Name="DragMovingEnabled" Value="False" />
+            <Property Name="Text" Value="File Browser" />
+            <Property Name="CloseButtonEnabled" Value="False" />
+            
+            <Window Type="Vanilla/StaticText" Name="FileManager/Label">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,0},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{0,60},{0,30}}" />
+                <Property Name="Text" Value="Search:" />
+            </Window>
+            
+            <Window Type="Vanilla/Editbox" Name="FileManager/Editbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{0,60},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="" />
+            </Window>
+            
+            <Window Type="Vanilla/Listbox" Name="FileManager/Listbox">
+                <Property Name="UnifiedPosition" Value="{{0,7},{0,40}}" />
+                <Property Name="UnifiedSize" Value="{{1,-14},{1,-45}}" />
+            </Window>
+        </Window>
+    </Window>
+</GUILayout>

@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<GUILayout>
+        <Window Type="Vanilla/FrameWindow" Name="TopBar/FrameWindow">
+			<Property Name="UnifiedMinSize" Value="{{0,0},{0,0}}" />
+            <Property Name="UnifiedPosition" Value="{{0,0},{0,0}}" />
+            <Property Name="UnifiedSize" Value="{{1,0},{0,30}}" />
+            <Property Name="SizingEnabled" Value="False" />
+            <Property Name="DragMovingEnabled" Value="False" />
+            <Property Name="CloseButtonEnabled" Value="False" />
+            <Property Name="TitlebarEnabled" Value="False" />
+            
+            <Window Type="Vanilla/StaticText" Name="TopBar/Label">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,50},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{0.7,-100},{0,15}}" />
+                <Property Name="Text" Value="Panda3D Scene Editor" />
+            </Window>
+        </Window>
+</GUILayout>

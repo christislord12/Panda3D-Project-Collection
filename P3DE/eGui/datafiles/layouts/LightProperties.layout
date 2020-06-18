@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<GUILayout>
+
+        <Window Type="Vanilla/FrameWindow" Name="LightProperties/FrameWindow">
+            <Property Name="UnifiedPosition" Value="{{0.7,0},{0.0,0}}" />
+            <Property Name="UnifiedSize" Value="{{0.3,0},{1.0,0}}" />
+            <Property Name="SizingEnabled" Value="False" />
+            <Property Name="DragMovingEnabled" Value="False" />
+            <Property Name="Text" Value="Object Settings" />
+            <Property Name="CloseButtonEnabled" Value="False" />
+            
+            <Window Type="Vanilla/StaticText" Name="LightProperties/NPNameLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{0,90},{0,30}}" />
+                <Property Name="Text" Value="NP Name:" />
+            </Window>
+            
+            <Window Type="Vanilla/Editbox" Name="LightProperties/NPNameEditbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{0,90},{0,0}}" />
+                <Property Name="UnifiedSize" Value="{{1,-90},{0,30}}" />
+            </Window>
+            
+            <Window Type="Vanilla/StaticText" Name="LightProperties/LockLabel">
+                <Property Name="BackgroundEnabled" Value="False" />
+                <Property Name="FrameEnabled" Value="False" />
+                <Property Name="UnifiedPosition" Value="{{0,20},{0,30}}" />
+                <Property Name="UnifiedSize" Value="{{1,-60},{0,30}}" />
+                <Property Name="Text" Value="Lock:" />
+            </Window>
+            
+            <Window Type="Vanilla/Checkbox" Name="LightProperties/LockCheckbox">
+                <Property Name="VerticalAlignment" Value="Top" />
+                <Property Name="UnifiedPosition" Value="{{1,-40},{0,30}}" />
+                <Property Name="UnifiedSize" Value="{{0,40},{0,30}}" />
+            </Window>
+
+        </Window>
+</GUILayout>
