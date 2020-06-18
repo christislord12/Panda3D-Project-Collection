@@ -1,0 +1,44 @@
+This iz my editor that creates panda3d scenes.
+
+Since I'm such a noob coding I really don't want to implement many GUI elements.
+So what? How tha f**k do we use this "thing"?
+
+Very simple! RRRRage shortcut!!
+
+
+Tab - Toggle view from scene exploring to edit mode
+
+Scene exploring mode:
+
+Mouse - move camera
+W - Move camera
+A - Move camera
+S - Move camera
+D - Move camera
+
+T - take off
+G - land
+
+EditMode:
+Mouse - de/selection
+S - Scale objects in all three dimensions
+X - Move object along the x axis
+Y - Move object along the y axis 
+Z - Move object along the z axis 
+H - Rotate object heading 
+P - Rotate object pitching 
+R - Rotate object rolling 
+D - Duplicate objects (to implement)
+W - Set wireframe attribute (to implement)
+
+L - Open submode AddLight
+	P - point light
+	D - directional light  (to implement)
+	A - ambient light  (to implement)
+
+E - Erase selected objects
+
+
+----------------------------------------------------------------------
+
+[...]

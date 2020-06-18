@@ -1,0 +1,46 @@
+from direct.showbase.ShowBase import ShowBase
+from direct.gui.DirectGui import *
+from panda3d.core import *
+from direct.task import Task
+#import for other game specific modules
+from camera import *
+from gui import *
+#system imports
+import sys,__builtin__
+
+#fullscreen e grandezza finestra
+loadPrcFileData("","""
+win-size 800 600
+text-encoding utf8
+show-frame-rate-meter 1
+sync-video #t
+""")
+
+class MyApp(ShowBase):
+	def __init__(self):
+		ShowBase.__init__(self)
+		
+		#adding this lulz model just to experiment
+		self.environ = loader.loadModel("models/environment")
+		# Reparent the model to render.
+		self.environ.reparentTo(self.render)
+		
+		#starting all base methods
+		__builtin__.myGui = MyGui()
+		__builtin__.myCamera = MyCamera()
+		self.defineEvents()
+	
+	def defineEvents(self):
+		base.accept("t", self.toggleView)
+		base.accept("e", sys.exit)
+	
+	def toggleView(self):
+		if myCamera.getState() == "fly":
+			myGui.showAll()
+		if myCamera.getState() == "static":
+			myGui.hideAll()
+		#switching camera in any case
+		myCamera.toggleState()
+
+app = MyApp()
+app.run()
