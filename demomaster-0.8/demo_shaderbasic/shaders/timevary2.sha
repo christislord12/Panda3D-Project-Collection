@@ -1,0 +1,76 @@
+//Cg
+
+// this shader is ported from Ogre Ocean2 demo
+struct Wave {
+  float freq;  // 2*PI / wavelength
+  float amp;   // amplitude
+  float phase; // speed * 2*PI / wavelength
+  float2 dir;
+};
+
+
+void vshader(
+    uniform float4x4 mat_modelproj,
+    uniform float4 mspos_light,
+    in float4 vtx_position : POSITION,
+    in float3 vtx_normal : NORMAL,
+    in float4 vtx_color : COLOR,
+	in uniform float4 k_time,
+	in uniform float4 k_waveInfo,
+    out float4 l_color : COLOR,
+    out float4 l_position : POSITION)
+{
+	float4 position = vtx_position;
+	#define NWAVES 2
+	Wave wave[NWAVES] = {
+		//{ 1.0, 1.0, 0.5, float2(-1, 0) },
+		{ 1.0, 1.0, 5, float2(-1, 1) },
+		{ 2.0, 0.5, 1.7, float2(-0.7, 0.7) }
+	};
+    wave[0].freq = k_waveInfo.x; //waveFreq;
+    wave[0].amp = k_waveInfo.y; //waveAmp;
+
+    wave[1].freq = k_waveInfo.x * 30; // waveFreq * 3.0;
+    wave[1].amp = k_waveInfo.y * 0.33; //waveAmp * 0.33;
+	//wave[1].amp = 0;
+
+	// sum waves
+	float ddx = 0.0, ddy = 0.0;
+	float deriv;
+	float angle;
+
+	// wave synthesis using two sine waves at different frequencies and phase shift
+	//for(int i = 0; i<NWAVES; ++i)
+	// use 1 wave instead
+	for(int i = 0; i<1; ++i)
+	{
+		angle = dot(wave[i].dir, position.xy) * wave[i].freq + k_time.x * wave[i].phase;
+		//if (position.x < -5)
+			position.z += wave[i].amp * sin( angle );
+		// calculate derivate of wave function
+		deriv = wave[i].freq * wave[i].amp * cos(angle);
+		ddx -= deriv * wave[i].dir.x;
+		ddy -= deriv * wave[i].dir.y;
+	}
+    float3 lightposition = mspos_light.xyz;
+    float3 modelposition = position.xyz;
+    //float3 normal = normalize(vtx_normal);
+	float3 normal = normalize(float3(ddx,ddy,1));
+    float3 direction = normalize(lightposition - modelposition);
+    float brightness = saturate(dot(normal, direction));
+
+    l_color = vtx_color * brightness;
+    l_position = mul(mat_modelproj, position);
+}
+
+/*
+The input l_color is the linear interpolated output from the vertex shaders
+output l_color.
+*/
+void fshader(
+    in float4 l_color : COLOR,
+    out float4 o_color : COLOR)
+{
+    o_color = l_color;
+	//o_color = float4(1,0,0,1);
+}

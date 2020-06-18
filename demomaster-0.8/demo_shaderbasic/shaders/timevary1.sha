@@ -1,0 +1,51 @@
+//Cg
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float4 vtx_color : COLOR,
+	in uniform float4 k_time,
+    out float4 l_color : COLOR,
+    out float4 l_position : POSITION)
+{
+	float4 position = vtx_position;
+	if (position.x > 0)
+		position.x += 3 * sin(k_time.x * 0.1);
+	if (position.y > 0)
+		position.y += 3 * sin(k_time.x * 0.2);
+	if (position.z > 0)
+		position.z += 3 * sin(k_time.x * 0.3);
+    l_position = mul(mat_modelproj, position);
+    l_color = vtx_color;
+
+    /*
+    DIRTY
+    A simple modification that disables the red component of the color.
+    */
+    float4 nored = float4(0.0, 1.0, 1.0, 1.0);
+    l_color = vtx_color * nored;
+}
+
+/*
+The input l_color is the linear interpolated output from the vertex shaders
+output l_color.
+*/
+void fshader(
+    in float4 l_color : COLOR,
+    out float4 o_color : COLOR)
+{
+    o_color = l_color;
+	//o_color = float4(1,0,0,1);
+    /*
+    DIRTY
+    This is the same modification as in the vertex shader above. But this time
+    we do it in the fragment shader. There is no visible difference, only that
+    this version is inefficient. That there is no visible difference is a good
+    sign, that we can do our work in the vertex shader. Maybe it is even a
+    better answer than the more correct answer that says that because our
+    modification does not involve any nonlinearity we do not have to do it the
+    fragment shader. If it is not visible why should I waste GPU cycles,
+    although it is not correct at all? Mathematicians would disagree, I guess.
+    */
+    //float4 nored = float4(0.0, 1.0, 1.0, 1.0);
+    //o_color = l_color * nored;
+}

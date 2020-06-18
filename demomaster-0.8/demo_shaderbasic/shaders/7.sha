@@ -1,0 +1,54 @@
+//Cg
+
+/*
+The vertex shader has not changed. If you like to apply another UV set for the
+second texture you have to pass the vtx_texcoord1 variable from the vertex
+shader to the fragment shader.
+*/
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float2 vtx_texcoord0 : TEXCOORD0,
+    out float2 l_my : TEXCOORD0,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+    l_my = vtx_texcoord0;
+}
+
+/*
+With TEXUNIT1 we can access the second texture unit. How many texture unit you
+can use depends on your GPU. The bad thing about this is that you need a
+fallback mechanisms if you use more texture units than the GPU of your
+applications users may have.
+*/
+void fshader(
+    uniform sampler2D tex_0 : TEXUNIT0,
+    uniform sampler2D tex_1 : TEXUNIT1,
+    in float2 l_my : TEXCOORD0,
+    out float4 o_color : COLOR)
+{
+    /*
+    Apply both textures. This is same operation as if you modulate two textures
+    with the fixed function pipline without using a shader. For this example,
+    the sort order of the texture stages has no influence to the final result.
+    */
+    o_color = tex2D(tex_0, l_my) * tex2D(tex_1, l_my);
+	//o_color = tex2D(tex_0, l_my) * tex2D(tex_1, l_my) * tex2D(tex_1, l_my);
+
+    /*
+    DIRTY
+    Here we play a bit and modify the arrow texture based on the red component
+    of the circle texture (The circle texture only has gray colors, therefore it
+    does not matter if you use R, G or B part).
+    */
+	/*
+    float4 arrow = tex2D(tex_0, l_my);
+    float4 circle = tex2D(tex_1, l_my);
+    if(circle.r < 0.5) {
+        o_color = arrow;
+    } else {
+        o_color = float4(1.0, 1.0, 1.0, 1.0) - arrow;
+    }
+	*/
+}
