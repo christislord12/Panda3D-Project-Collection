@@ -1,0 +1,29 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: bloom, reference ogre
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_src1 : TEXUNIT1)
+{
+	float4 sharp = tex2D(k_src1,   l_texcoord0);
+	float4 blur  = tex2D(k_src, l_texcoord0);
+	float OriginalImageWeight = k_param1.x;
+	float BlurWeight = k_param1.y;
+	o_color = blur*BlurWeight+sharp*OriginalImageWeight;
+}
+
