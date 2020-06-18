@@ -1,0 +1,42 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+
+void vshader( in float4 vtx_position : POSITION,
+              in float2 vtx_texcoord0 : TEXCOORD0,
+              in uniform float4x4 mat_modelproj,
+              in uniform float4x4 mat_modelview,
+              in uniform float4 k_grass,
+
+              out float l_distance,
+              out float2 l_texcoord0 : TEXCOORD0,
+              out float4 l_position : POSITION )
+{
+    // jitter
+    vtx_position.xy = vtx_position.xy + k_grass.xy * ( vtx_texcoord0.y - 0.1f );
+
+    // clipping
+    l_distance = length( mul( mat_modelview, vtx_position ) );
+
+    // position and texcoord
+    l_position = mul( mat_modelproj, vtx_position );
+    l_texcoord0 = vtx_texcoord0;
+}
+
+void fshader( in float4 l_position : POSITION,
+              in float2 l_texcoord0 : TEXCOORD0,
+              in uniform float4 k_grass,
+              in float l_distance,
+
+              in uniform sampler2D tex_0 : TEXUNIT0,
+
+              out float4 o_color : COLOR )
+{
+    // clipping
+    if ( l_distance > k_grass.w ) discard;
+
+    // texture
+    o_color = tex2D( tex_0, l_texcoord0 );
+	//o_color.a *=0.5;
+}
+
+

@@ -1,0 +1,77 @@
+//Cg
+//Cg profile arbvp1 arbfp1
+// clcheung: Depth of Field
+// handle also color leaking
+
+void vshader(float4 vtx_position : POSITION, 
+             float2 vtx_texcoord0 : TEXCOORD0,
+             out float4 l_position : POSITION,
+      	     out float2 l_texcoord0 : TEXCOORD0,
+			 uniform float4 texpad_src,
+             uniform float4x4 mat_modelproj)
+{
+  l_position=mul(mat_modelproj, vtx_position);
+  //l_texcoord0=vtx_texcoord0;
+  l_texcoord0 = vtx_position.xz * texpad_src.xy + texpad_src.xy;
+}
+
+float2 poissonDisk[12] = {
+	float2(-0.326212,-0.40508),
+	float2(-0.840144, -0.07358),
+	float2(-0.695914, 0.457137),
+	float2(-0.203345, 0.620716),
+	float2(0.96234, -0.194983),
+	float2(0.473434, -0.480026),
+	float2(0.519456, 0.767022),
+	float2(0.185461, -0.893124),
+	float2(0.507431, 0.064425),
+	float2(0.89642, 0.412458),
+	float2(-0.32194, -0.932615),
+	float2(-0.791559, -0.59771) 
+};
+
+float4 PCF_Filter( float2 uv, float r, sampler2D map )
+{
+   float4 sum = float4(0,0,0,0);
+   for ( int i = 0; i < 12; ++i ){
+      float2 offset = poissonDisk[i] * r;   
+      float4 mapval = tex2D(map,uv+offset);
+      sum += mapval;
+   }
+   return saturate(sum / 12.0);
+}
+
+void fshader(float2 l_texcoord0 : TEXCOORD0,
+             out float4 o_color : COLOR,
+			 uniform float4 k_param1,
+             uniform sampler2D k_src : TEXUNIT0,
+			 uniform sampler2D k_dtex : TEXUNIT1)
+{
+   float depth = tex2D(k_dtex, l_texcoord0).x;
+   float focus = k_param1.x;
+   float blur = k_param1.y;
+   float maxblur =  k_param1.z;
+   float d = abs(focus - depth);
+   //float4 c = tex2D(k_src, l_texcoord0);
+
+   float radius = min(d * blur, maxblur);
+   
+   float4 sum = float4(0,0,0,0);
+   float total = 0;
+   for ( int i = 0; i < 12; ++i ){
+	  float2 uv = l_texcoord0 +  poissonDisk[i] * radius;
+      float depth_sample = tex2D(k_dtex, uv).x;
+	  if (depth_sample > depth) {
+		  float blurness = min(abs(depth_sample - focus) * blur, maxblur) / maxblur;
+          float4 tapColor = tex2D(k_src,uv);
+		  sum += tapColor * blurness;
+		  total += blurness;
+	  }
+   }
+   
+   if (total == 0)
+		o_color.rgb  = tex2D(k_src, l_texcoord0).xyz;
+   else
+        o_color.rgb  = (sum/total).xyz;
+   o_color.w = 1;
+}

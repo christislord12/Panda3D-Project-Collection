@@ -1,0 +1,179 @@
+""" shadowManager.py
+Author:       pro-rsoft (niertie1@gmail.com)
+Description:  Contains the ShadowManager class, which manages shadows for
+              a scene, and supports both soft and hard shadows.
+License:      zlib/libpng license:
+
+Copyright (c) 2008 pro-rsoft
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+    1. The origin of this software must not be misrepresented; you must not
+    claim that you wrote the original software. If you use this software
+    in a product, an acknowledgment in the product documentation would be
+    appreciated but is not required.
+
+    2. Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+
+    3. This notice may not be removed or altered from any source
+    distribution.
+"""
+__all__ = ["ShadowManager"]
+
+from pandac.PandaModules import GraphicsOutput, Texture, NodePath, Vec3
+from pandac.PandaModules import PandaNode, WindowProperties, GraphicsPipe
+from pandac.PandaModules import FrameBufferProperties, Vec4
+
+# These are two functions which help creating two different kind of offscreen buffers.
+def createOffscreenBuffer(sort):
+  winprops = WindowProperties.size(512, 512)
+  props = FrameBufferProperties()
+  props.setRgbColor(1)
+  props.setAlphaBits(1)
+  props.setDepthBits(1)
+  return base.graphicsEngine.makeOutput(
+         base.pipe, "offscreenBuffer",
+         sort, props, winprops,
+         GraphicsPipe.BFRefuseWindow,
+         base.win.getGsg(), base.win)
+
+def makeFilterBuffer(srcbuffer, name, sort, shader):
+  blurBuffer = base.win.makeTextureBuffer(name, 512, 512)
+  blurBuffer.setSort(sort)
+  blurBuffer.setClearColor(Vec4(1, 0, 0, 1))
+  blurCamera = base.makeCamera2d(blurBuffer)
+  blurScene = NodePath("blurScene")
+  blurCamera.node().setScene(blurScene)
+  card = srcbuffer.getTextureCard()
+  card.reparentTo(blurScene)
+  card.setShader(shader)
+  return blurBuffer
+
+class ShadowManager():
+  """This class manages shadows for a scene."""
+  
+  def __init__(self, scene = base.render, ambient = 0.2, hardness = 16, fov = 40, near = 10, far = 100):
+    """Create an instance of this class to initiate shadows.
+    Also, a shadow casting 'light' is created when this class is called.
+    The first parameter is the nodepath in the scene where you
+    want to apply your shadows on, by default this is render."""
+    
+    # Read and store the function parameters
+    self.scene = scene
+    self.__ambient = ambient
+    self.__hardness = hardness
+    
+    # By default, mark every object as textured.
+    self.flagTexturedObject(self.scene)
+    
+    # Create the buffer plus a texture to store the output in
+    buffer = createOffscreenBuffer(-3)
+    depthmap = Texture()
+    buffer.addRenderTexture(depthmap, GraphicsOutput.RTMBindOrCopy, GraphicsOutput.RTPColor)
+    
+    # Set the shadow filter if it is supported
+    if(base.win.getGsg().getSupportsShadowFilter()):
+      depthmap.setMinfilter(Texture.FTShadow)
+      depthmap.setMagfilter(Texture.FTShadow) 
+    
+    # Make the camera
+    self.light = base.makeCamera(buffer)
+    self.light.node().setScene(self.scene)
+    self.light.node().getLens().setFov(fov)
+    self.light.node().getLens().setNearFar(near, far)
+
+    # Put a shader on the Light camera.
+    lci = NodePath(PandaNode("lightCameraInitializer"))
+    lci.setShader(loader.loadShader("caster.sha"))
+    self.light.node().setInitialState(lci.getState())
+
+    # Put a shader on the Main camera.
+    mci = NodePath(PandaNode("mainCameraInitializer"))
+    mci.setShader(loader.loadShader("softshadow.sha"))
+    base.cam.node().setInitialState(mci.getState())
+
+    # Set up the blurring buffers, one that blurs horizontally, the other vertically
+    blurXBuffer = makeFilterBuffer(buffer, "Blur X", -2, loader.loadShader("blurx.sha"))
+    blurYBuffer = makeFilterBuffer(blurXBuffer, "Blur Y", -1, loader.loadShader("blury.sha"))
+
+    # Set the shader inputs
+    self.scene.setShaderInput("light", self.light)
+    self.scene.setShaderInput("depthmap", blurYBuffer.getTexture())
+    self.scene.setShaderInput("props", ambient, hardness, 0, 1)
+
+  def flagUntexturedObject(self, object):
+    """Marks the supplied object as untextured. The shader needs to know this for
+    every untextured object, because otherwise the shader will make it all black."""
+    object.setShaderInput("texDisable", 1, 1, 1, 1)
+    
+  def flagTexturedObject(self, object):
+    """Marks the supplied object as textured. By default, all objects are already
+    marked as textured, but if you manually flag an object as untextured, you can use
+    this function to revert."""
+    object.setShaderInput("texDisable", 0, 0, 0, 0)
+
+  def setAmbient(self, ambient):
+    """Returns the ambient of the scene. This is a value between 0 and 1.
+    0 is very dark, while 1 is very light. Usually a value like 0.2 is recommended."""
+    self.__ambient = ambient
+    self.scene.setShaderInput("props", self.__ambient, self.__hardness, 0, 1)
+
+  def getAmbient(self):
+    """Returns the ambient of the scene. This is a value between 0 and 1.
+    0 is very dark, while 1 is very light. Usually a value like 0.2 is recommended."""
+    return self.__ambient
+
+  def setHardness(self, hardness):
+    """Sets the hardness of the shadows. This is usually a value higher than 0.
+    64 is usually a good value for very hard shadows, while at a value of 0,
+    the shadows are so soft they are unnoticable. Usually a value near 16 is recommended,
+    but this may vary on the scene and you may need to experiment a bit with this value."""
+    self.__hardness = hardness
+    self.scene.setShaderInput("props", self.__ambient, self.__hardness, 0, 1)
+
+  def getHardness(self, hardness):
+    """Returns the hardness of the shadows. This is usually a value higher than 0.
+    64 is usually a good value for very hard shadows, while at a value of 0,
+    the shadows are so soft they are unnoticable. Usually a value near 15 is recommended,
+    but this may vary on the scene and you may need to experiment a bit with this value."""
+    return self.__hardness
+
+  def getLight(self):
+    """Returns a NodePath which represents the light and shadow caster.
+    You can also directly access the light using ShadowManager.light."""
+    return self.light
+
+  def setFov(self,fov):
+    """Sets the field-of-view, in degrees, of the light."""
+    self.light.node().getLens().setFov(fov)
+    
+  def getFov(self):
+    """Returns the field-of-view, in degrees, of the light."""
+    return self.light.node().getLens().getFov()
+    
+  def setFar(self, far):
+    """Sets the far distance of the light."""
+    self.light.node().getLens().setFar(far)
+
+  def getFar(self):
+    """Returns the far distance of the light."""
+    return self.light.node().getLens().getFar()
+    
+  def setNear(self, near):
+    """Sets the near distance of the light."""
+    self.light.node().getLens().setNear(near)
+
+  def getNear(self):
+    """Returns the near distance of the light."""
+    return self.light.node().getLens().getNear()
+
+  def setNearFar(self, near, far):
+    """Shorthand function to set both the near and far clip of the camera."""
+    self.light.node().getLens().setNearFar(near, far)

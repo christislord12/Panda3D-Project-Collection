@@ -1,0 +1,31 @@
+//Cg
+//
+//Cg profile arbvp1 arbfp1
+
+void vshader(
+      float4 vtx_position : POSITION,
+      float2 vtx_texcoord0 : TEXCOORD0,
+      out float4 l_position : POSITION,
+      out float2 l_texcoord0 : TEXCOORD0,
+      out float2 l_texcoord1 : TEXCOORD1,
+      uniform float4 texpad_render,
+      uniform float4x4 mat_modelproj
+   )
+{
+   l_position=mul(mat_modelproj, vtx_position);
+   l_texcoord0 = vtx_position.xz * texpad_render.xy + texpad_render.xy;
+   l_texcoord1 = vtx_texcoord0;
+}
+
+void fshader(
+      float2 l_texcoord0 : TEXCOORD0,
+      float2 l_texcoord1 : TEXCOORD1,
+      out float4 o_color : COLOR,
+      uniform float4 k_light,
+      uniform sampler2D k_render : TEXUNIT0,
+      uniform sampler2D k_shadow : TEXUNIT1,
+      uniform float4 k_props
+   )
+{
+   o_color  = saturate(tex2D(k_render, l_texcoord0) - k_props.x * k_light * tex2D(k_shadow, l_texcoord1));
+}

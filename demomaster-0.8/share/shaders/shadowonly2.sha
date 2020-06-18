@@ -1,0 +1,81 @@
+//Cg
+
+void vshader(   
+      float4 vtx_position       : POSITION,
+      float3 vtx_normal         : NORMAL,
+      uniform float4x4 trans_model_to_clip_of_light,
+      uniform float4x4 mat_modelproj,
+      uniform float4 mspos_light,
+
+      out float4 l_back,
+      out float4 l_position : POSITION,
+      out float4 l_shadowcoord    : TEXCOORD0,
+      out float4 l_lightclip       : TEXCOORD1
+   )
+{
+   float4 position = vtx_position;
+   
+   // vertex position
+   l_position = mul(mat_modelproj, position);
+   
+   // backface?
+   l_back = dot(vtx_normal, normalize(mspos_light - position));
+
+   // Calculate light-space clip position.
+   float4 pushed = position + float4(vtx_normal*0.2, 0);
+   l_lightclip = mul(trans_model_to_clip_of_light, pushed);
+
+   // Calculate shadow-map texture coordinates.
+   l_shadowcoord = l_lightclip * float4(0.5,0.5,0.5,1.0) + l_lightclip.w * float4(0.5,0.5,0.5,0.0);
+}
+
+float2 poissonDisk[16] = {
+   float2( -0.94201624, -0.39906216 ),
+   float2( 0.94558609, -0.76890725 ),
+   float2( -0.094184101, -0.92938870 ),
+   float2( 0.34495938, 0.29387760 ),
+   float2( -0.91588581, 0.45771432 ),
+   float2( -0.81544232, -0.87912464 ),
+   float2( -0.38277543, 0.27676845 ),
+   float2( 0.97484398, 0.75648379 ),
+   float2( 0.44323325, -0.97511554 ),
+   float2( 0.53742981, -0.47373420 ),
+   float2( -0.26496911, -0.41893023 ),
+   float2( 0.79197514, 0.19090188 ),
+   float2( -0.24188840, 0.99706507 ),
+   float2( -0.81409955, 0.91437590 ),
+   float2( 0.19984126, 0.78641367 ),
+   float2( 0.14383161, -0.14100790 )
+};
+
+float PCF_Filter( float2 uv, float z, float r, sampler2D map ){
+   float sum = 0.0f;
+   for ( int i = 0; i < 8; ++i ){
+      float2 offset = poissonDisk[i] * r;   
+      float mapval = tex2D(map,uv+offset);
+      float diff = z-mapval;
+      sum += (diff>0);
+   }
+   return saturate(sum / 8.0);
+}
+
+void fshader(      
+      in float4 l_shadowcoord : TEXCOORD0,
+      in float4 l_lightclip : TEXCOORD1,
+      in float l_back,
+      uniform sampler2D k_depthmap : TEXUNIT0,
+      out float4 o_color:COLOR
+   )
+{
+   o_color = 0.0;
+   if (l_back>0.0){
+      float3 circleoffs = float3(l_lightclip.xy / l_lightclip.w, 0);
+      float falloff = saturate(1.0 - dot(circleoffs, circleoffs));
+      float4 proj = l_shadowcoord / l_shadowcoord.w;
+    
+      float mapval = tex2D(k_depthmap,proj.xy);
+      float diff = proj.z-mapval;
+      float shade = (diff>0) ? PCF_Filter(proj.xy,proj.z,0.2*diff,k_depthmap) : 0;
+      o_color = falloff * shade;
+   }
+} 
