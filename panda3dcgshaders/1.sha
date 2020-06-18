@@ -1,0 +1,109 @@
+//Cg
+
+/*
+We do not explain the details here, only some basics. Not everything here is a
+requirement from Cg, Panda3D has its own requirements, especially when it comes
+to the names of variables.
+
+The first important thing is the //Cg comment line on the top. If you remove
+this comment, the shader will not compile.
+
+Second. You see a function vshader and fshader. This are the entry points for
+the vertex shader respectively the fragment shader. What they are doing, an when
+they are called, is explained in a later tutorial.
+*/
+
+/*
+The only requirement of a vertex shader is that it has to generate a position.
+You should ask why is there a float4, and not for example a float3? In a Panda3D
+application you can move around your objects in three dimensions, therefore it
+maybe true that a float3 may be enough. A float3 is a floating point variable
+that can hold three floating point values. It is like a fixed size array of
+three floats. A float4 is fixed size array that can hold four floats. Back to
+the question why float4? With this fourth value you can do some fancy stuff you
+cannot do if you only have a float3. We later see that we multiply this float4
+with a matrix that consists of four float4 or in other words 16 float values.
+You cannot multiply a float3 with a matrix that consists of float4. It is more
+or less like the fourth value in colors, the alpha component. Often you do not
+need this, but you can do some cool things with it.
+
+Back to topic. The only thing we are doing here is to assign the variable 
+l_position a constant float4. In C/C++/C# you cannot assign arrays to arrays the 
+way we do it here, but in Cg this is possible, for this fixed sized arrays. Can 
+we rename the variable l_position? The l_ prefix means, that the content of 
+l_position is linearly interpolated (more to that later). But the word position 
+is only a convention (which you can change if you like). Look up this name in 
+the "List of Possible Shader Inputs" in the manual.
+
+Why do I have to write "out" in front of l_position? In C/C++/C# every function
+has at most one return value. But shaders often need to return more than one
+value. The NVIDIA guys then added a "in" keyword and a "out" keyword to Cg.
+"out" means, that it is a return value. "in" means that is an input value. This
+basic shader has no inputs at all, and this is one of the main reason it cannot
+produce any useful results. Here we only set l_position, but in later examples 
+we will have more then one output value.
+
+The "POSITION" keyword is a hint for the GPU. The GPU then knows that is should
+assign l_position to an internal POSITION register (I have invented the term
+register here, it may not be precise). The GPU knows that the output to POSITION
+it has to later draw on the screen. Currently the GPU does not know what color
+the pixels will have, but it can calculate a position on the screen for every
+given POSITION. The GPU itself is not as smart as one may think, we need to do 
+some not so simple math first, to help the GPU calculate this a correct position 
+on the screen.
+*/
+void vshader(
+    out float4 l_position : POSITION)
+{
+    /*
+    DIRTY
+    Replace float4 with float3 look carefully at the Panda3D output on the
+    command line.
+    */
+    l_position = float4(0.0, 0.0, 0.0, 0.0);
+
+    /*
+    DIRTY
+    The following two lines, do the same as the line before.
+    */
+    //float4 zero = float4(0.0, 0.0, 0.0, 0.0);
+    //l_position = zero;
+
+    /*
+    DIRTY
+    Do some more useless math. After changing a line, restart your application,
+    although you will not see anything, start to play around and see if you can
+    compile it at least. You can also assign more than once a float4 to
+    l_position.
+    */
+    //float4 zero = float4(0.0, 0.0, 0.0, 0.0);
+    //zero = zero * float4(1.0, 2.0, 3.0, 4.0);
+    //zero = zero * 5.0;
+    //l_position = zero;
+    //l_position = float4(0.0, 0.0, 0.0, 0.0);
+}
+
+/*
+More or less everything that was said about the vertex shader is true for the
+fragment shader. The minimum requirement is that a fragment shader has to create
+a color, to do this we have to assign a float4 to o_color. See "List of Possible
+Shader Inputs" what the name o_color means.
+
+Here the GPU needs the keyword "COLOR" for o_color. This is a hint for the GPU
+that we like to assign a float4 to the color buffer of your screen. As one may
+know, the range of a color component is 0 - 255 for R, G and B. That is a fact
+the GPU knows and translate the floating point values to integers. The advantage
+of floating point is, that if 48 bit color displays are common, we do not have
+to change our shader, nor do we have to change our shader if we only have a 16
+bit color depth.
+*/
+void fshader(
+    out float4 o_color : COLOR)
+{
+    /*
+    DIRTY
+    Try to modify this line like in the vertex shader, although you will not see
+    any results.
+    */
+    o_color = float4(1.0, 0.0, 1.0, 1.0);
+}

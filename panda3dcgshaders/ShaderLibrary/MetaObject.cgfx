@@ -1,0 +1,324 @@
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Object";
+	string ScriptOrder = "Standard";
+	string ScriptOutput = "Color";
+> = 0.8;
+
+#include "Functions.cgfx"
+
+float4x4 WorldViewProjection : WORLDVIEWPROJECTION <string UIWidget = "None";>;
+float4x4 WorldInverseTranspose : WORLDINVERSETRANSPOSE <string UIWidget = "None";>;
+float4x4 ViewInverse : VIEWINVERSE <string UIWidget = "None";>;
+float4x4 World : WORLD <string UIWidget = "None";>;
+float4x4 ViewProjection : VIEWPROJECTION <string UIWidget = "None";>;
+float4x4 View : VIEW <string UIWidget = "None";>;
+float4x4 WorldView : WORLDVIEW <string UIWidget = "None";>;
+
+float4 BaseColor <string UIWidget = "Color";> = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+float4 LightWorldPosition : POSITION <string Object = "Light"; string space="World";>;
+float4 LightWorldDirection : DIRECTION <string Object="Light"; string Space="World";>;
+float4 LightAmbientColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+float4 LightDiffuseColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+float4 LightSpecularColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+float LightAttenuationK0 <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 10.0; float UIStep = 0.1;> = 1.0f;
+float LightAttenuationK1 <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 10.0; float UIStep = 0.1;> = 0.0f;
+float LightAttenuationK2 <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 10.0; float UIStep = 0.1;> = 0.5f;
+float LightAttenuationRange <string UIWidget = "Slider"; float UIMin = 1.0; float UIMax = 100.0; float UIStep = 1.0;> = 100.0f;
+float LightAttenuationExponent <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 10.0; float UIStep = 0.1;> = 1.0f;
+
+float4 ObjectEmmissiveColor <string UIWidget = "Color";> = { 0.0f, 0.0f, 0.0f, 1.0f };
+float4 ObjectAmbientColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+float4 ObjectDiffuseColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+float ObjectDiffuseRoughness <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.1f;
+
+float4 ObjectSpecularColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+float ObjectSpecularShininess <string UIWidget = "Slider"; float UIMin = 1.0; float UIMax = 100.0; float UIStep = 1.0;> = 50.0f;
+float ObjectSpecularRoughness <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.1f;
+float ObjectSpecularFresnel <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 10.0; float UIStep = 0.1;> = 1.0f;
+
+float ObjectEnvironmentScale <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.3f;
+float ObjectEnvironmentRefractionRatio <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.9f;
+float ObjectEnvironmentRefractionRatioR <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.91f;
+float ObjectEnvironmentRefractionRatioG <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.92f;
+float ObjectEnvironmentRefractionRatioB <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.93f;
+float ObjectEnvironmentFresnelOffset <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 5.0; float UIStep = 0.01;> = 0.1f;
+float ObjectEnvironmentFresnelScale <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 5.0; float UIStep = 0.01;> = 0.5f;
+float ObjectEnvironmentFresnelPower <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 5.0; float UIStep = 0.01;> = 0.2f;
+
+float ParallaxScale <string UIWidget = "Slider"; float UIMin = 0.000; float UIMax = 0.04; float UIStep = 0.001;> = 0.02f;
+
+bool Test = false;
+
+texture AlbedoTexture <>;
+sampler2D AlbedoSampler = sampler_state {
+	Texture = <AlbedoTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+texture HeightTexture <>;
+sampler2D HeightSampler = sampler_state {
+	Texture = <HeightTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+texture NormalTexture <>;
+sampler2D NormalSampler = sampler_state {
+	Texture = <NormalTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+texture GlossTexture <>;
+sampler2D GlossSampler = sampler_state {
+	Texture = <GlossTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+texture EnvironmentTexture <>;
+samplerCUBE EnvironmentSampler = sampler_state {
+	Texture = <EnvironmentTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+#define POINT_LIGHT
+//#define DIRECTIONAL_LIGHT
+
+#define EMMISIVE
+
+#define AMBIENT
+
+//#define ATTENUATION_CLASSIC
+//#define ATTENUATION_MY_LINEAR
+//#define ATTENUATION_MY_QUADRATIC
+//#define ATTENUATION_MY_MONOMIAL
+
+//#define DIFFUSE_ALBEDO_MAP
+#define DIFFUSE_LAMBERT
+//#define DIFFUSE_OREN_NAYAR
+
+//#define SPECULAR_GLOSS_MAP
+//#define SPECULAR_BLINN
+#define SPECULAR_PHONG
+//#define SPECULAR_COOK_TORRANCE
+
+//#define SPECULAR_COOK_TORRANCE_BECKMANN
+//#define SPECULAR_COOK_TORRANCE_GAUSSIAN
+
+//#define NORMAL_MAPPING
+//#define PARALLAX_MAPPING
+
+//#define REFLECTION
+//#define REFLECTION_REFRACTION
+//#define REFLECTION_REFRACTION_RGB
+
+//#define TONE_MAPPING
+
+struct VertexIn {
+	float4 positionObject : POSITION;
+	float3 tangentObject : TANGENT;
+	float3 bitangentObject : BINORMAL;
+	float3 normalObject : NORMAL;
+	float2 texcoord : TEXCOORD0;
+};
+
+/*
+For texture coordinate generation positionObject and normalObject is needed.
+*/
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float2 texcoord : TEXCOORD0;
+	float4 positionWorld : TEXCOORD1;
+	float3 tangentWorld : TEXCOORD2;
+	float3 bitangentWorld : TEXCOORD3;
+	float3 normalWorld : TEXCOORD4;
+	//float3 positionObject: TEXCOORD6;
+	//float3 normalObject: TEXCOORD7;
+};
+
+struct FragmentOut {
+	float4 color : COLOR0;
+};
+
+/*
+WorldInverseTranspose can be replaced by World, if World only contains uniform
+scaling or no scaling at all.
+
+The great question is, in what space should the most transformation be done.
+World space is usefull for environmental effects, while eye space is usefull for
+things like Screen Space Ambient Occlusion.
+*/
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = mul(WorldViewProjection, i.positionObject);
+
+	o.texcoord = i.texcoord;
+
+	o.positionWorld = mul(World, i.positionObject);
+
+	o.tangentWorld = normalize(mul(float3x3(WorldInverseTranspose), i.tangentObject));
+	o.bitangentWorld = normalize(mul(float3x3(WorldInverseTranspose), i.bitangentObject));
+	o.normalWorld = normalize(mul(float3x3(WorldInverseTranspose), i.normalObject));
+
+	//o.positionObject = i.positionObject.xyz;
+	//o.normalObject = i.normalObject;
+}
+
+/*
+Although the following fragment shader has only support for one light, it should
+be noted, that it was designed to support a unlimited amount of lights. There
+are no TEXCOORD registers with light dependent parameters e.g.
+
+The bad news are, that this shader supports more light parameters than are
+supported by FX Composer. Most application still only offer light parameters as
+in the old age of fixed function pipelines (instead of arbitrary name/value
+pairs).
+
+Each map (Gloss, Albedo, ...) has a seperate texture. In a realworld application
+it may be a good idea to merge as much maps as possible. In normal maps it is
+possible to omit one component at all and calculate it at runtime (z = sqrt(1.0
+- x*x - y*y)).
+
+TODO
+
+Theoretically there is no specular light, when there is no diffuse light. But
+simply disabling it (as in some NVIDIA examples) results in hard edges, which do
+not look that nice IMO. Multiplying with diffuseFactor?
+*/
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	float4 color = BaseColor;
+
+	float3 eyeWorld = float3(ViewInverse[0][3], ViewInverse[1][3], ViewInverse[2][3]);
+	float3 positionToEyeWorld = normalize(eyeWorld - i.positionWorld.xyz);
+
+	float2 texcoord = i.texcoord;
+
+	//texcoord = FlatMapping(i.positionObject.xz);
+	//texcoord = CubeMapping(i.positionObject, i.normalObject);
+	//texcoord = SphereMapping(i.positionObject);
+
+#ifdef PARALLAX_MAPPING
+	float height = tex2D(HeightSampler, texcoord).r * ParallaxScale - ParallaxScale * 0.5;
+	float parallaxX = dot(i.tangentWorld, positionToEyeWorld);
+	float parallaxY = dot(i.bitangentWorld, positionToEyeWorld);
+	texcoord += height * float2(parallaxX, parallaxY);
+#endif
+
+#ifdef NORMAL_MAPPING
+	float3 normalTexture = tex2D(NormalSampler, texcoord).rgb * 2.0 - 1.0;
+	float3 normalWorld = float3(0.0, 0.0, 0.0);
+	normalWorld += i.tangentWorld * normalTexture.x;
+	normalWorld += i.bitangentWorld * normalTexture.y;
+	normalWorld += i.normalWorld * normalTexture.z;
+	normalWorld = normalize(normalWorld);
+#else
+	float3 normalWorld = normalize(i.normalWorld);
+#endif
+
+#ifdef POINT_LIGHT
+	float3 positionToLightWorld = normalize(LightWorldPosition.xyz - i.positionWorld.xyz);
+#endif
+#ifdef DIRECTIONAL_LIGHT
+	float3 positionToLightWorld = normalize(-LightWorldDirection.xyz); // in FX Composer light direction is from light to surface
+#endif
+
+	float gloss = 1.0;
+#ifdef SPECULAR_GLOSS_MAP
+	gloss = tex2D(GlossSampler, texcoord);
+#endif
+
+	float4 albedo = float4(1.0, 1.0, 1.0, 1.0);
+#ifdef DIFFUSE_ALBEDO_MAP
+	albedo = tex2D(AlbedoSampler, texcoord);
+#endif
+
+	float attenuation = 1.0;
+	float distance = length(LightWorldPosition.xyz - i.positionWorld.xyz);
+#ifdef ATTENUATION_CLASSIC
+	attenuation = AttenuationClassic(distance, LightAttenuationK0, LightAttenuationK1, LightAttenuationK2);
+#endif
+#ifdef ATTENUATION_MY_LINEAR
+	attenuation = AttenuationMyLinear(distance, LightAttenuationRange);
+#endif
+#ifdef ATTENUATION_MY_QUADRATIC
+	attenuation = AttenuationMyQuadratic(distance, LightAttenuationRange);
+#endif
+#ifdef ATTENUATION_MY_MONOMIAL
+	attenuation = AttenuationMyMonomial(distance, LightAttenuationRange, LightAttenuationExponent);
+#endif
+
+#ifdef EMMISIVE
+	float4 emmisive = ObjectEmmissiveColor;
+	color += emmisive;
+#endif EMMISIVE
+
+#ifdef AMBIENT
+	float4 ambient = LightAmbientColor * ObjectAmbientColor;
+	ambient *= attenuation;
+	//ambient *= occlusion; // e.g. Screen Space Ambient Occlusion
+	color += ambient;
+#endif
+
+	float diffuseFactor = 0.0;
+#ifdef DIFFUSE_LAMBERT
+	diffuseFactor = DiffuseLambert(normalWorld, positionToLightWorld);
+#endif
+#ifdef DIFFUSE_OREN_NAYAR
+	diffuseFactor = DiffuseOrenNayar(normalWorld, positionToEyeWorld, positionToLightWorld, ObjectDiffuseRoughness);
+#endif
+	float4 diffuse = LightDiffuseColor * ObjectDiffuseColor * diffuseFactor;
+	diffuse *= attenuation;
+	diffuse *= albedo;
+	color += diffuse;
+
+	float specularFactor = 0.0;
+#ifdef SPECULAR_BLINN
+	specularFactor = SpecularBlinn(normalWorld, positionToEyeWorld, positionToLightWorld, ObjectSpecularShininess);
+#endif
+#ifdef SPECULAR_PHONG
+	specularFactor = SpecularPhong(normalWorld, positionToEyeWorld, positionToLightWorld, ObjectSpecularShininess);
+#endif
+#ifdef SPECULAR_COOK_TORRANCE
+	specularFactor = SpecularCookTorrance(normalWorld, positionToEyeWorld, positionToLightWorld, ObjectSpecularRoughness, ObjectSpecularFresnel);
+#endif
+	float4 specular = LightSpecularColor * ObjectSpecularColor * specularFactor;
+	specular *= attenuation;
+	specular *= gloss;
+	color += specular;
+
+	float4 environment = float4(0.0, 0.0, 0.0, 0.0);
+#ifdef REFLECTION
+	environment = Reflection(i.positionWorld.xyz - eyeWorld, normalWorld, EnvironmentSampler);
+#endif
+#ifdef REFLECTION_REFRACTION
+	environment = ReflectionRefraction(i.positionWorld.xyz - eyeWorld, normalWorld, EnvironmentSampler, ObjectEnvironmentRefractionRatio, ObjectEnvironmentFresnelOffset, ObjectEnvironmentFresnelScale, ObjectEnvironmentFresnelPower);
+#endif
+#ifdef REFLECTION_REFRACTION_RGB
+	environment = ReflectionRefractionRGB(i.positionWorld.xyz - eyeWorld, normalWorld, EnvironmentSampler, ObjectEnvironmentRefractionRatioR, ObjectEnvironmentRefractionRatioG, ObjectEnvironmentRefractionRatioB, ObjectEnvironmentFresnelOffset, ObjectEnvironmentFresnelScale, ObjectEnvironmentFresnelPower);
+#endif
+	color += ObjectEnvironmentScale * environment;
+
+#ifdef TONE_MAPPING
+	color.rgb = SimpleToneMapping(color.rgb);
+#endif
+
+	o.color = color;
+}
+
+technique MyTechnique {
+	pass MyPass {
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile vp40 VertexProgram();
+		FragmentProgram = compile fp40 FragmentProgram();
+	}
+}

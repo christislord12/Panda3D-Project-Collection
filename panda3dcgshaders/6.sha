@@ -1,0 +1,121 @@
+//Cg
+
+/*
+Think of a 2D texture of something like a 2D array with values. We can use a 2D
+texture for tinting meshes (as we do here), or for a function with two
+parameters. If this function is extremely hard to calculate, this may indeed be
+a good idea, so we can offload the work to a pre process. Textures often contain
+a color with a R, G and B component. But it is possible that a texture contains
+an additional alpha value, or only contains one value at all. Besides 2D
+textures, there are 1D textures and 3D textures. One fragment/pixel on a texture
+is often called a texel. UV coordinates address a texel on a 2D texture. It is
+like if your home made RPG is only flat and needs no Z coordinate to position
+your character, then you need only XY. XY in texture language means UV. If you
+use a 3D texture, there is an additional W parameter which leads to UVW
+coordinates.
+*/
+
+/*
+Maybe you remember that in the variable vtx_color, the current vertex color was.
+Like vtx_color, there is a variable vtx_texcoord0 with the UV coordinates of the
+first UV coordinate set. This UV coordinates are exactly the ones you can see in
+the egg file. The egg file only has one set of UV coordinates, but it is
+possible to specify more than one UV set. If you have two or more textures that
+does not mean, we have to use more than one UV set, we can use one UV set for as
+much textures we like (up to texture limit of the GPU and up to the limitations
+older GPUs had). Like in the color sample we only assign the UV coordinate to
+the variable l_my, or whatever we name it, and let it interpolate by the GPU.
+
+One more thing about this UV sets. Maybe you think they are only useful for
+textures, but think of this sets as additional properties of a vertex. The
+designers maybe only thought that this UV sets are for texturing but you may use
+them for any cool idea you have. UV coordinates are especially suited for that,
+because you can have more than one, in contrast to a color where you only can
+have one color (OpenGL has the possibility to use a secondary color, but as far
+as I know Panda3D does not support it, because there is no need for it, in the
+age of shaders).
+
+You may ask: "We do something about texturing, we have this UV set, but where is
+the texture?" Maybe you would not ask this question because you think that a
+texture changes the color, so the fragment shader should care about the texture.
+Per vertex texturing is non sense you may answer then and you are right. But as
+already written you may abuse a texture for function evaluation. It may be
+possible that this function has too many values, therefore our texture is too
+large. Here it may possible that we can simplify the function and only create a
+texture with some support values. This support values have to leave the vertex
+shader and get linearly interpolated. This linear interpolation may lead to 
+inaccuracies, but hopefully they are good enough so no one can spot the 
+difference (each OpenGL version has it own limitations how much textures fetches 
+are allowed in vertex shader, DirectX maybe have this limitations as well).
+*/
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float2 vtx_texcoord0 : TEXCOORD0,
+    out float2 l_my : TEXCOORD0,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+    l_my = vtx_texcoord0;
+
+    /*
+    DIRTY
+    If you add the following uniform to your program:
+
+    uniform float4x4 mat_modelview,
+
+    You have access to a matrix that only contains the modelview
+    transformations, without the projection as with the modelproj matrix. If you
+    calculate the texture coordinates based on this transformation (this is a 
+    form of texture coordinate generation), the texture should always be at the 
+    same location, move around the scene to see what happens exactly.
+    */
+    //l_my = mul(mat_modelview, vtx_position);
+}
+
+/*
+Our fragment shader fetches the color from a texture and returns the color, so
+the GPU can write it down to the color buffer.
+
+To get a texel we need a texture and texture coordinate. The texture coordinate
+is provided by the vertex shader, while the texture is provided through a
+uniform. Besides the new data type sampler2D we have this new TEXUNIT0 register.
+How do we now what is inside TEXUNIT0? Based on the sort order in the Python
+code, Panda3D assigns the texture with the lowest number to TEXUNIT0, the
+texture with the next hight number is then assigned TEXUNIT1 and so on. That is
+the reason why you can switch the texture with the setSort method of a
+TextureStage.
+
+Finally there is this tex2D function. This function exists in multiple versions
+(overloaded variants). The simplest one is where you have to specify a sampler2D
+as first parameter and a float2 as second parameter, the one we use here. Based
+on this input the GPU fetches a texel from the texture. How it is interpolated
+depends on the settings on the texture unit which you have to apply in the
+Python code. setWrapU and setWrapV are two examples (if you store function
+values in texture then carefully chose the texture filtering options). Sometimes
+it also depends on some graphic driver settings. Graphic drivers can override 
+any application setting.
+
+If you enable anisotropic filtering there are some hidden parameters to tex2D. 
+Especially for anisotropic filtering the results depends on the vendors 
+implementation. ATI and NVIDIA both harmlessly blamed each other for their GPUs 
+worse texture filtering capabilities.
+*/
+void fshader(
+    uniform sampler2D tex_0 : TEXUNIT0,
+    in float2 l_my : TEXCOORD0,
+    out float4 o_color : COLOR)
+{
+    o_color = tex2D(tex_0, l_my);
+
+    /*
+    DIRTY
+    Just to play with texture coordinates. Assign all fragments the same color
+    from one specific 2D location in a texture. If you use the default texture
+    that is assigned in the Python sample, then there is a black arrow in the
+    middle of the texture. The UV coordinate for the texture center is (0.5,
+    0.5). If you enable that line thus you only see a black screen.
+    */
+    //o_color = tex2D(tex_0, float2(0.5, 0.5));
+    //o_color = tex2D(tex_0, float2(0.0, 0.5));
+}

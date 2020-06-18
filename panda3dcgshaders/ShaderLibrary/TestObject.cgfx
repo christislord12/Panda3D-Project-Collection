@@ -1,0 +1,66 @@
+
+/*
+ScriptClass is "Object" or "Scene". ScriptOrder is "Standard" or "PostProcess".
+ScriptOutput is alwys "Color". The 0.8 describes with version of the "Standard
+Annotations and Semantics" aka SAS is used.
+
+http://developer.nvidia.com/object/using_sas.html
+*/
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Object";
+	string ScriptOrder = "Standard";
+	string ScriptOutput = "Color";
+> = 0.8;
+
+float4x4 WorldViewProjection : WORLDVIEWPROJECTION <string UIWidget = "None";>;
+
+float4 ObjectColor <string UIWidget = "Color";> = { 1.0f, 1.0f, 1.0f, 1.0f };
+float ObjectShrink <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 2.0; float UIStep = 0.1;> = 1.0f;
+
+struct VertexIn {
+	float4 positionObject : POSITION;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float3 positionObject : TEXCOORD0;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = mul(WorldViewProjection, i.positionObject);
+	o.positionObject = i.positionObject.xyz;
+}
+
+/*
+The geometry program is executed after the vertex program, therefore the
+POSITION register already contains clip space coordinates. Even a simple scaling
+does not work as intended because w is not 1.0 anymore. The easiest approach is
+to simply retransform all vertices.
+*/
+TRIANGLE void GeometryProgram(AttribArray<float3> positionObject : TEXCOORD0) {
+	for (int i = 0; i < positionObject.length; i++) {
+		float4 positionClip = mul(WorldViewProjection, float4(positionObject[i] * ObjectShrink, 1.0));
+		emitVertex(positionClip : POSITION, positionObject[i] : TEXCOORD0);
+	}
+}
+
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	o.color = float4(i.positionObject.xyz * 0.5 + 0.5, 1.0) * ObjectColor;
+}
+
+technique MyTechnique {
+	pass MyPass {
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile gp4vp VertexProgram();
+		GeometryProgram = compile gp4gp GeometryProgram();
+		FragmentProgram = compile gp4fp FragmentProgram();
+	}
+}

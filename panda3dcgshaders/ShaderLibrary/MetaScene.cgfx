@@ -1,0 +1,127 @@
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Scene";
+	string ScriptOrder = "PostProcess";
+	string ScriptOutput = "Color";
+	string Script = "Technique=MyTechnique;";
+> = 0.8;
+
+#include "Functions.cgfx"
+
+float ClearDepth <string UIWidget = "None";> = 1.0;
+float4 ClearColor <string UIWidget = "Color";> = { 0.0, 0.0, 0.2, 1.0 };
+
+/*
+TIME is normally zero. If "Play" is pressed inside FX Composer, TIME contains the
+elapsed time in seconds (floating point) since the button was pressed.
+*/
+float Time : TIME <string UIWidget = "None";>;
+
+texture SceneColorTexture : RENDERCOLORTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "A8R8G8B8";
+	string UIWidget = "None";
+>;
+sampler2D SceneColorSampler = sampler_state {
+	texture = <SceneColorTexture>;
+	MagFilter = Linear;
+	MinFilter = Linear;
+};
+
+texture SceneDepthTexture : RENDERDEPTHSTENCILTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "D24S8";
+	string UIWidget = "None";
+>;
+
+texture NoiseTexture <>;
+sampler2D NoiseSampler = sampler_state {
+	Texture = <NoiseTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+	WrapS = Repeat;
+	WrapT = Repeat;
+};
+
+float FilmGrainFPS <string UIWidget = "Slider"; float UIMin = 1.0; float UIMax = 100.0; float UIStep = 1.0;> = 15.0f;
+float FilmGrainNoiseScale <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 2.0; float UIStep = 0.01;> = 1.0f;
+
+float NightVisionFPS <string UIWidget = "Slider"; float UIMin = 1.0; float UIMax = 100.0; float UIStep = 1.0;> = 15.0f;
+float NightVisionNoiseScale <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 2.0; float UIStep = 0.01;> = 1.0f;
+
+float PosterizeDivision <string UIWidget = "Slider"; float UIMin = 1.0; float UIMax = 32.0; float UIStep = 1.0;> = 4.0f;
+
+//#define FILM_GRAIN
+//#define NIGHT_VISION
+#define POSTERIZE
+
+struct VertexIn {
+	float3 positionObject : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = float4(i.positionObject.xyz, 1.0);
+	o.texcoord = i.texcoord;
+}
+
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	float4 color = tex2D(SceneColorSampler, i.texcoord);
+
+#ifdef FILM_GRAIN
+	float t = floor(Time * FilmGrainFPS) / FilmGrainFPS;
+	float noise = tex2D(NoiseSampler, (i.texcoord + t * 11.0) * 7.0).r;
+	noise = 1.0 + (noise - 0.5) * FilmGrainNoiseScale;
+	color.rgb *= noise;
+#endif
+
+#ifdef NIGHT_VISION
+	float t = floor(Time * NightVisionFPS) / NightVisionFPS;
+	float noise = tex2D(NoiseSampler, (i.texcoord + t * 11.0) * 7.0).r;
+	noise = 1.0 + (noise - 0.5) * NightVisionNoiseScale;
+	float stripes = cos(200.0 * i.texcoord.y + t * 10.0) * 0.05;
+	float3 nightvision = Luminance(color.rgb) * noise + stripes;
+	nightvision.rb = nightvision.b - 0.8;
+	color.rgb = nightvision;
+#endif
+
+#ifdef POSTERIZE
+	color.rgb = floor(color.rgb * PosterizeDivision) / PosterizeDivision;
+#endif
+
+	o.color = color;
+}
+
+technique MyTechnique < string Script =
+	"ClearSetColor=ClearColor;"
+	"ClearSetDepth=ClearDepth;"
+	"RenderColorTarget0=SceneColorTexture;"
+	"RenderDepthStencilTarget=SceneDepthTexture;"
+	"Clear=Color;"
+	"Clear=Depth;"
+	"ScriptExternal=Color;"
+	"RenderColorTarget0=;"
+	"RenderDepthStencilTarget=;"
+	"Pass=MyPass;";
+	> {
+	pass MyPass < string Script =
+		"Draw=Buffer;";
+	> {
+		CullFaceEnable = false;
+		DepthTestEnable = false;
+		DepthMask = false;
+		BlendEnable = false;
+		VertexProgram = compile vp40 VertexProgram();
+		FragmentProgram = compile fp40 FragmentProgram();
+	}
+}

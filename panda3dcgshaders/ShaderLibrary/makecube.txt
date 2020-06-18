@@ -1,0 +1,6 @@
+cube-positive-x.jpg
+cube-negative-x.jpg
+cube-positive-y.jpg
+cube-negative-y.jpg
+cube-positive-z.jpg
+cube-negative-z.jpg

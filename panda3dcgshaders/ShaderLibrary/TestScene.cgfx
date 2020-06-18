@@ -1,0 +1,84 @@
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Scene";
+	string ScriptOrder = "PostProcess";
+	string ScriptOutput = "Color";
+	string Script = "Technique=MyTechnique;";
+> = 0.8;
+
+#include "Functions.cgfx"
+
+float ClearDepth <string UIWidget = "None";> = 1.0;
+float4 ClearColor <string UIWidget = "Color";> = { 0.0, 0.0, 0.2, 1.0 };
+
+/*
+Surface formats are described in the following page.
+
+http://msdn.microsoft.com/en-us/library/bb153349(VS.85).aspx
+*/
+texture SceneColorTexture : RENDERCOLORTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "A8R8G8B8";
+	string UIWidget = "None";
+>;
+sampler2D SceneColorSampler = sampler_state {
+	texture = <SceneColorTexture>;
+	MagFilter = Linear;
+	MinFilter = Linear;
+};
+
+texture SceneDepthTexture : RENDERDEPTHSTENCILTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "D24S8";
+	string UIWidget = "None";
+>;
+
+struct VertexIn {
+	float3 positionObject : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = float4(i.positionObject.xyz, 1.0);
+	o.texcoord = i.texcoord;
+}
+
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	float4 color = tex2D(SceneColorSampler, i.texcoord);
+	float luminance = Luminance(color.rgb);
+	o.color = float4(luminance, luminance, luminance, 1.0);
+}
+
+technique MyTechnique < string Script =
+	"ClearSetColor=ClearColor;"
+	"ClearSetDepth=ClearDepth;"
+	"RenderColorTarget0=SceneColorTexture;"
+	"RenderDepthStencilTarget=SceneDepthTexture;"
+	"Clear=Color;"
+	"Clear=Depth;"
+	"ScriptExternal=Color;"
+	"RenderColorTarget0=;"
+	"RenderDepthStencilTarget=;"
+	"Pass=MyPass;";
+	> {
+	pass MyPass < string Script =
+		"Draw=Buffer;";
+	> {
+		CullFaceEnable = false;
+		DepthTestEnable = false;
+		DepthMask = false;
+		BlendEnable = false;
+		VertexProgram = compile vp40 VertexProgram();
+		FragmentProgram = compile fp40 FragmentProgram();
+	}
+}

@@ -1,0 +1,95 @@
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Object";
+	string ScriptOrder = "Standard";
+	string ScriptOutput = "Color";
+> = 0.8;
+
+#include "Functions.cgfx"
+
+float4x4 WorldViewProjection : WORLDVIEWPROJECTION <string UIWidget = "None";>;
+
+float m1 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 4.0f;
+float n11 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 4.0f;
+float n12 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 7.0f;
+float n13 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 7.0f;
+float m2 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 4.0f;
+float n21 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 4.0f;
+float n22 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 7.0f;
+float n23 <string UIWidget = "Slider"; float UIMin = 0.1; float UIMax = 100.0; float UIStep = 0.1;> = 7.0f;
+
+struct VertexIn {
+	float4 positionObject : POSITION;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float3 positionObject : TEXCOORD0;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = mul(WorldViewProjection, i.positionObject);
+	o.positionObject = i.positionObject.xyz;
+}
+
+/*
+There are to basic possibilites to create object with the superformula.
+
+1. Create new vertexes. Based on the spherical coordinates calculate the two
+radii and transform them into cartesian coordinates.
+
+2. Use an already existing object and transform the cartesian coordinates into
+spherical coordinates and then calculate the two radii.
+
+Here method 2 is implemented.
+
+TODO
+
+AFAIK it should be possible to generate more vertices than there were in the
+input stream (e.g. tesselation). But somehow it seems that it impossible with FX
+Composer (or I am too stupid to do it correctly). That was the main reason why
+method 2 is implemented.
+
+TODO
+
+Why is there a little hole in the middle of the object?
+Has the umodified sphere a (invisible) hole?
+*/
+TRIANGLE void GeometryProgram(AttribArray<float3> positionObject : TEXCOORD0) {
+	for (int i = 0; i < positionObject.length; i++) {
+		// if the input object is a sphere, normalize may be not needed
+		float3 p = normalize(positionObject[i].xyz);
+
+		// convert spherical coordinates to cartesian coordinates
+		float rho = atan2(p.z, p.x);
+		float phi = acos(p.y);
+
+		float rrho = Superformula(rho, 1.0, 1.0, m1, n11, n12, n13);
+		float rphi = Superformula(phi, 1.0, 1.0, m2, n21, n22, n23);
+
+		p = float3(p.x * rrho * rphi, p.y * rphi, p.z * rrho * rphi);
+
+		emitVertex(mul(WorldViewProjection, float4(p, 1.0)) : POSITION, p : TEXCOORD0);
+	}
+}
+
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	o.color = float4(i.positionObject.xyz * 0.5 + 0.5, 1.0);
+}
+
+technique MyTechnique {
+	pass MyPass {
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile gp4vp VertexProgram();
+		GeometryProgram = compile gp4gp GeometryProgram();
+		FragmentProgram = compile gp4fp FragmentProgram();
+	}
+}

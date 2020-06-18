@@ -1,0 +1,42 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created by wxMaxima version 0.7.3 ] */
+
+/* [wxMaxima: input   start ] */
+perspective(fov,aspect,znear,zfar):=matrix([cot(fov/2)/aspect,0,0,0],[0,cot(fov/2),0,0],[0,0,(zfar
+ +znear)/(znear-zfar),(2*znear*zfar)/(znear-zfar)],[0,0,-1,0]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+p:perspective(%pi/2,4/3,5,100);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+m:p;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+a:m.[x,y,z,1];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f(x):=at((a[3])[1]/(a[4])[1],z=x);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f(-100);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f(-5);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+float(f(-101));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+float(f(-4));
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$

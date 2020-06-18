@@ -1,0 +1,162 @@
+//Cg
+
+/*
+No new concepts this time. But after you read this tutorial, you have a nice
+playground to start playing with. I say you probably understand more than 50% of
+Cg. Sure there are some functions that may do things that are not that obvious,
+but Cg itself is simple.
+
+There is a PDF available on the Internet, written by a NVIDIA guru:
+
+http://arxiv.org/pdf/cs/0302013
+
+Although it is not bad if you try to understand the content, it is probably more
+interesting that this document only has two pages.
+
+One bad thing about shader development is that you cannot easily debug the
+shader like say a C application. There is no print statement (and therefore no
+easy to understand HelloWorld). If you start to create complex things maybe try
+the Cg debugger from NVIDIA.
+
+http://developer.nvidia.com/object/nv_shader_debugger_home.html
+
+But we do not give up so fast. In our examples we colorize our cubes. But in
+today applications, this colors are not as important as they were in the last
+millennium. So why not abuse this colors for debugging? Sure it is not easy to
+read color encoded debugging information, but if you once start, you feel like
+the inverse of one Matrix guy. He is able to see a woman out of some digits,
+while we see numbers when we look at a colored screen. This method has one
+drawback. While you can assign any possible value to the RGBA parts of a color,
+it only makes sense if they are visible. Therefore they need to be in range from
+0.0 to 1.0. Your fragment shader often needs to be a bit clever, so the
+debugging information you get from the colors are not completely useless.
+*/
+
+/*
+This vertex shader has a new output l_my. The first time in all those tutorials
+this is not a predefined Panda3D variable. In the simplest form we pass a
+constant value to this variable. This variable is then linearly interpolated and
+passed to the fragment shader. If it is a constant value then there is no
+interpolation at all, but the GPU does not know this (maybe the Cg compiler
+optimizes this away, but I am not sure about this). In the fragment shader we
+assign this value immediately to the o_color, therefore every change to the
+vertex shader should immediately be visible on your screen. There is only one
+more question left. What does this TEXCOORD0 mean? Sounds like it has something
+to do with texturing. This is only half of the truth. The texture capabilities
+of a GPU are quite generic. As we later will see, textures can be abused for
+other things than texturing. Think of TEXCOORD0 as generic storage that is
+interpolated like COLOR or POSITION, but this time, the GPU does really nothing
+more than interpolating (no assignment to a depth buffer, color buffer or
+anything else). What if we like to pass more manually generated values to the
+fragment shader? Then start with TEXCOORD1 and so on.
+*/
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float4 vtx_color : COLOR,
+    out float4 l_my : TEXCOORD0,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+
+    /*
+    DIRTY
+    This shader creates the same output like 3.sha, but this time we pass the
+    color through TEXCOORD0 instead of COLOR.
+    */
+    l_my = vtx_color;
+
+    /*
+    DIRTY
+    With the previous version the output looks a bit odd. What is the reason?
+    When you have once more look at the egg file you will see that the vertex
+    coordinates of the cube ranges from -1.0 to 1.0. If we apply these
+    coordinates to color directly, what we have done, we have, negative colors.
+    Negative values are clamped to 0.0 by the GPU (the people working with the
+    LHC maybe are the only ones ever seen an anti red). But we can help our self
+    and let it look a bit nicer. The first step is that we divide every
+    component by two, therefore the range is reduced from -0.5 to 0.5. Second
+    step is to add 0.5 to every component. Now the range is from 0.0 to 1.0,
+    exactly what we want. Remember this nifty trick, it may be helpful if you
+    try to write your first shadow mapping algorithm.
+
+    Both of the two following lines are equivalent (perhaps one is faster than
+    the other).
+
+    You can move this whole calculation to the fragment shader but maybe you can
+    already see that there is no difference and therefore it the only thing that
+    we can may see is that the FPS counter is not as high as before (But this
+    example is maybe to simple for your GPU to notice any speed difference).
+    */
+    //l_my = vtx_position * float4(0.5, 0.5, 0.5, 0.5) + float4(0.5, 0.5, 0.5, 0.5);
+    //l_my = vtx_position * 0.5 + 0.5;
+
+    /*
+    DIRTY
+    In a previous example we said that you can think of float4 as array with 4
+    floats. This is still true, but it is an array and at the same time it 
+    behaves like a C union/struct. In the following example all cubes have a 
+    cyan color. In Cg this is called swizzling.
+    */
+    //l_my.rg = float2(0.0, 1.0);
+    //l_my[2] = 1.0;
+
+    /*
+    DIRTY
+    You can mix these identifiers freely. This time the cubes should be yellow.
+    A small overview for a given flaot4 f:
+
+    f[0] = f.r = f.x
+    f[1] = f.g = f.y
+    f[2] = f.b = f.z
+    f[3] = f.a = f.w
+
+    Cg itself does not care if something is called r oder x. These names are
+    only helpful for carbon based life forms.
+    */
+    //l_my.xz = float2(1.0, 0.0);
+    //l_my.g = 1.0;
+}
+
+/*
+While we defined l_my as output in the vertex shader, this time we have to
+define l_my as input. But refer to the same storage, in this sample TEXCOORD0.
+*/
+void fshader(
+    in float4 l_my : TEXCOORD0,
+    out float4 o_color : COLOR)
+{
+    o_color = l_my;
+
+    /*
+    DIRTY
+    Cg supports C like keywords like if and else. I do not know how good latest
+    GPUs are with branching instructions, but older GPUs were slow or not able
+    at all to do branching.
+    */
+    //if(l_my.r > 0.5) {
+    //    o_color = float4(1.0, 0.0, 0.0, 1.0);
+    //} else {
+    //    o_color = float4(0.0, 1.0, 0.0, 1.0);
+    //}
+
+    /*
+    You have to see the scene from behind to see what happens. Normaly the
+    function "length" is used to calculate the length of a vector. We abuse the
+    function here. Length is an expensive function. It is defined as follows for
+    a given float3 f:
+
+    length(f) = sqrt(f.x * f.x + f.y * f.y + f.z * f.z)
+
+    Ever tried to square root a number manually? Maybe you guess why it is
+    expensive.
+    */
+    //float l = length(l_my.rgb);
+    //if(l > 0.99) {
+    //    o_color = float4(1.0, 0.0, 0.0, 1.0);
+    //} else {
+    //    float4 red = float4(1.0, 0.0, 0.0, 1.0);
+    //    float4 green = float4(0.0, 1.0, 0.0, 1.0);
+    //    o_color = lerp(red, green, 1.0 - l);
+    //}
+}

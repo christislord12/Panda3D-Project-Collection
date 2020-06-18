@@ -1,0 +1,98 @@
+//Cg
+
+/*
+This is time we write our first shader that passes explicitly information from
+the vertex shader to the fragment shader and we talk a bit more about linear
+interpolation.
+
+In the last shader examples you may have never seen that there was any linear
+interpolation, but there was. If we only draw one triangle on the screen we only
+need three vertices. So vshader is called three times. If this triangle is large
+our fshader is called 100'000 times and more. What happens here between? The GPU
+starts to render a triangle (that is one thing a GPU can do without any help). 
+But how does the GPU connect e.g. vertex 1 with vertex 2? It only does linear 
+interpolation between the two vertices. That is the reason why we always see a 
+straight line between two vertices, never any curves or the like. If you like to 
+draw a sphere you have to approximate the sphere with simple triangles, although 
+this is rather inefficient (but it is simple and generic).
+
+There is one more thing we were not talking about much. With our vertex shader
+we transform our vertices so they look perspectively correct on the screen. But
+vertices have three coordinates and your flat screen has only two dimensions. Do
+we throw away the third coordinate (that could easily be done, but read on)?
+Remember the depth buffer? The depth buffer is sometimes called z buffer and now
+you may understand why. When we apply your matrix to a vertex the resulting
+vertex has still all three dimensions. We assign then this vertex to o_vertex.
+The GPU knows then that if there is depth buffer activated it has to do
+something with this Z coordinate (only because we have assigned it to the
+POSITION register). When the GPU starts to draw this triangle it interpolates
+individual positions and z coordinates for possible future fragments (pixels),
+based on our vertex shader output. The graphic card then checks if there is
+already a z coordinate (at least the newer ones, old ones call the fragment
+shader in any circumstance) in this buffer. If yes, it compares this old z
+coordinate with the new. If the new z is nearer than the old (this comparison
+function can be changed, but do not care about this yet), the old is overwritten
+and the fragment is sent to the fragment shader.
+
+What can a vertex shader do in general? It gets some inputs that change per
+vertex (vtx_position, vtx_color, ...), some uniforms that often only change
+between objects (mat_modelproj, ...) and some outputs (l_color, l_position,
+...). Based on the input we calculate the outputs. The GPU then interpolates all
+outputs and most of them we can read back in the fragment shader.
+
+If we make our own shader and we can solve something with linear interpolation,
+we always should consider to do this in the vertex shader, and let the GPU do
+the interpolation. But sometimes linear interpolation makes things worse and so
+we have to do everything in the fragment shader. Normal mapping is perfect
+example, where the linear interpolation of the GPU may as well be a problem and
+we have to craft carefully the vertex shader and the fragment shader.
+*/
+
+/*
+We have a new input and a new output. vtx_color is exactly the color inside the
+egg file. In the simplest case we do not modify this value and directly give it
+back to the GPU. Open "List of Possible Shader Inputs" once more and try to
+understand what the names mean.
+*/
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float4 vtx_color : COLOR,
+    out float4 l_color : COLOR,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+    l_color = vtx_color;
+
+    /*
+    DIRTY
+    A simple modification that disables the red component of the color.
+    */
+    //float4 nored = float4(0.0, 1.0, 1.0, 1.0);
+    //l_color = vtx_color * nored;
+}
+
+/*
+The input l_color is the linear interpolated output from the vertex shaders
+output l_color.
+*/
+void fshader(
+    in float4 l_color : COLOR,
+    out float4 o_color : COLOR)
+{
+    o_color = l_color;
+
+    /*
+    DIRTY
+    This is the same modification as in the vertex shader above. But this time
+    we do it in the fragment shader. There is no visible difference, only that
+    this version is inefficient. That there is no visible difference is a good
+    sign, that we can do our work in the vertex shader. Maybe it is even a
+    better answer than the more correct answer that says that because our
+    modification does not involve any non-linearity we do not have to do it the
+    fragment shader. If it is not visible why should I waste GPU cycles,
+    although it is not correct at all? Mathematicians would disagree, I guess.
+    */
+    //float4 nored = float4(0.0, 1.0, 1.0, 1.0);
+    //o_color = l_color * nored;
+}

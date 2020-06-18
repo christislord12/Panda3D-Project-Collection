@@ -1,0 +1,77 @@
+//Cg
+
+/*
+Cg does not offers lot of high level constructs like classes in C++. It is more
+like C. Functions are therefore possible, and are used in this example.
+*/
+
+/*
+Like in the previous shader we do all our work in the pixel shader, therefore we
+do not have to add anything to our vertex shader.
+*/
+void vshader(
+    uniform float4x4 mat_modelproj,
+    in float4 vtx_position : POSITION,
+    in float3 vtx_normal : NORMAL,
+    in float4 vtx_color : COLOR,
+    out float4 l_color : COLOR,
+    out float3 l_myposition : TEXCOORD0,
+    out float3 l_mynormal : TEXCOORD1,
+    out float4 l_position : POSITION)
+{
+    l_position = mul(mat_modelproj, vtx_position);
+
+    l_myposition = vtx_position.xyz;
+    l_mynormal = normalize(vtx_normal);
+
+    l_color = vtx_color;
+}
+
+float lit(float3 lightposition, float3 modelposition, float3 normal)
+{
+    float3 direction = lightposition - modelposition;
+    float distance = length(direction);
+    float diffuse = saturate(dot(normalize(normal), normalize(direction)));
+    /*
+    Normally you would define the following constants in Python source and pass
+    them this shader. We are a bit lazy here and hard code them in this
+    function.
+    */
+    float a = 0.0;
+    float b = 0.0;
+    float c = 1.0;
+    /*
+    DIRTY
+    If you like to achieve the same results as the fixed function pipeline you
+    should add a saturate here. But I think, that it looks quite nice, if you
+    get extremely bright spots when a light source is near a face, even is the
+    face is dark.
+    */
+    float attenuation = 1.0 / (a + b * distance + c * distance * distance);
+    return attenuation * diffuse;
+}
+
+/*
+Because we have extended the lighting equations in a separate function, the
+fragment shader looks clean. It would be simple to add more lights. The only
+limits here is that every GPU only supports a limited number of uniforms and
+shader instructions. So you maybe cannot add hundreds of lights, besides that it
+takes an endless amount of time to do per pixel lighting with hundred lights.
+*/
+void fshader(
+    uniform float4 mspos_light0,
+    uniform float4 mspos_light1,
+    uniform float4 mspos_light2,
+    in float3 l_myposition : TEXCOORD0,
+    in float3 l_mynormal : TEXCOORD1,
+    in float4 l_color : COLOR,
+    out float4 o_color : COLOR)
+{
+    float brightness = 0.0;
+
+    brightness += lit(mspos_light0.xyz, l_myposition, l_mynormal);
+    brightness += lit(mspos_light1.xyz, l_myposition, l_mynormal);
+    brightness += lit(mspos_light2.xyz, l_myposition, l_mynormal);
+
+    o_color = l_color * brightness;
+}

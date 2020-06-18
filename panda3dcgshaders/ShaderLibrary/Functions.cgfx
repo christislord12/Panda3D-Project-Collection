@@ -1,0 +1,301 @@
+
+/*
+http://local.wasp.uwa.edu.au/~pbourke/surfaces_curves/supershape
+http://local.wasp.uwa.edu.au/~pbourke/surfaces_curves/supershape3d
+http://en.wikipedia.org/wiki/Superellipse
+http://en.wikipedia.org/wiki/Superformula
+*/
+float Superformula(float angle, float a, float b, float m, float n1, float n2, float n3) {
+	float s = pow(abs(cos(m * angle / 4.0) / a), n2);
+	float t = pow(abs(sin(m * angle / 4.0) / b), n3);
+	float u = pow(s + t, -1.0 / n1);
+	return u;
+}
+
+/*
+http://en.wikipedia.org/wiki/Luminance_(relative)
+*/
+float Luminance(float3 color) {
+	float3 conversion = float3(0.2126, 0.7152, 0.0722);
+	return dot(conversion, color);
+}
+
+bool AlmostEqual(float a, float b) {
+	return abs(a - b) < 0.00001;
+}
+
+/*
+Usefull for debugging.
+
+o.color = GreenRed(AlmostEqual(length(i.normalObject), 1.0))
+*/
+float4 GreenRed(bool condition) {
+	if(condition) {
+		return float4(0.0, 1.0, 0.0, 1.0);
+	} else {
+		return float4(1.0, 0.0, 0.0, 1.0);
+	}
+}
+
+/*
+Parameter position usually in object space.
+
+FlatMapping(positionObject.xy);
+FlatMapping(positionObject.xz);
+*/
+float2 FlatMapping(float2 position) {
+	float2 texcoord;
+	texcoord = position;
+	return texcoord;
+}
+
+/*
+Parameters position and normal usually in object space.
+
+CubeMapping(positionObject.xyz, normalObject);
+*/
+float2 CubeMapping(float3 position, float3 normal) {
+	float2 texcoord;
+	normal = abs(normal);
+	if((normal.z >= normal.x) && (normal.z >= normal.y)) {
+		texcoord.x = position.x;
+		texcoord.y = position.y;
+	} else if((normal.y >= normal.x) && (normal.y >= normal.z)) {
+		texcoord.x = position.x;
+		texcoord.y = position.z;
+	} else {
+		texcoord.x = position.y;
+		texcoord.y = position.z;
+	}
+	return texcoord;
+}
+
+/*
+Parameter position usually in object space.
+
+SphereMapping(positionObject.xyz);
+*/
+float2 SphereMapping(float3 position) {
+	float2 texcoord;
+	float l = length(position);
+	texcoord.x = atan2(position.x, position.y);
+	texcoord.y = acos(position.z / l);
+	return texcoord;
+}
+
+float AttenuationClassic(float distance, float k0, float k1, float k2) {
+	return saturate(1.0 / (k0 + k1 * distance + k2 * distance * distance));
+}
+
+/*
+The following three AttenuationMy* function have the advantage that at
+distance=range there is no light. This is not true for the classic attenutation
+function. There is no more wild guessing at which it range the light is not
+visible anymore.
+
+For a bit more speed range could be passed as "1.0 / range". "distance / range"
+can then be replaced by "distance * range". In both cases, even the most
+complicated function seems to be faster than the classical one (according to the
+NVIDIA Performance Analyzer).
+*/
+float AttenuationMyLinear(float distance, float range) {
+	return saturate(1.0 - (distance / range));
+}
+
+float AttenuationMyQuadratic(float distance, float range) {
+	float x = distance / range;
+	return saturate(1.0 - x * x);
+}
+
+float AttenuationMyMonomial(float distance, float range, float exponent) {
+	return saturate(1.0 - pow(distance / range, exponent));
+}
+
+/*
+All of the following Diffuse* and Specular* functions use parameters like n, l
+and e. All of the must be in the same space (Object, World or Eye) and must be
+normalized. n is the normal, e is the eye vector (vector from surface position
+to eye position) and l is the light vector (vector from surface position to
+light position).
+*/
+
+/*
+http://en.wikipedia.org/wiki/Lambertian_reflectance
+*/
+float DiffuseLambert(float3 n, float3 l) {
+	return saturate(dot(l, n));
+}
+
+/*
+http://en.wikipedia.org/wiki/Oren%E2%80%93Nayar_diffuse_model
+http://www.cs.berkeley.edu/~ravir/6998/papers/oren-nayar_siggraph94.ps.gz
+http://www1.cs.columbia.edu/CAVE/publications/pdfs/Nayar_IJCV95.pdf
+
+TODO
+
+Somewhere I was reading that 0.33 should be replaced by 0.57.
+
+TODO
+
+Describe how to calculate phi from phii and phir.
+
+*/
+float DiffuseOrenNayar(float3 n, float3 l, float3 e, float roughness) {
+	float roughnesssquare = roughness * roughness;
+	float en = dot(e, n);
+	float ln = dot(l, n);
+	float aen = acos(dot(e, n));
+	float aln = acos(dot(l, n));
+	float a = 1.0 - 0.5 * (roughnesssquare / (roughnesssquare + 0.33));
+	float b = 0.45 * (roughnesssquare / (roughnesssquare + 0.09));
+	float alpha = max(aen, aln);
+	float beta = min(aen, aln);
+	float phi = dot(e - n * en, l - n * ln);
+	return saturate(ln * (a + b * max(0.0, phi) * sin(alpha) * tan(beta)));
+}
+
+/*
+Standard Blinn has no refraction (Blender uses something something different for
+Blinn). Mathematically Phong is more correct and Blinn is faster, but according
+to the second paper, Blinn is physically more correct.
+
+http://en.wikipedia.org/wiki/Blinn
+http://people.csail.mit.edu/wojciech/BRDFValidation/index.html
+*/
+float SpecularBlinn(float3 n, float3 e, float3 l, float shininess) {
+	float3 h = normalize(e + l);
+	return pow(saturate(dot(h, n)), shininess);
+}
+
+/*
+http://en.wikipedia.org/wiki/Phong_shading
+
+Without a normal map, the r vector could be calculated in the vertex shader.
+*/
+float SpecularPhong(float3 n, float3 e, float3 l, float shininess) {
+	float3 r = -reflect(e, n);
+	return pow(saturate(dot(r, l)), shininess);
+}
+
+/*
+http://en.wikipedia.org/wiki/Specular_highlight
+
+Looks like clamp and saturate do not work if the given value is infinity.
+
+Beckmann distribution uses cos and tan. Both are easily calculable if all
+vectors are normalized (Maxima is able to simplify the equqations as well).
+
+cos(n, h) = nh
+tan(n, h)^2 = tan(acos(cos(n, h)))^2 = tan(acos(nh))^2 = (sqrt(1-nh^2)/nh)^2 = (1-nh^2)/(nh^2)
+
+TODO
+
+I am not sure if it is ok that the light may shine through the back faces at
+sharp angles. To avoid this effect the final result could be multiplied with ln
+although that is not correct. Blender has the same problem with sharp angles
+(render sharpangle.blend).
+*/
+float SpecularCookTorrance(float3 n, float3 e, float3 l, float roughness, float fresnel) {
+	float roughnesssquare = roughness * roughness;
+
+	float3 h = normalize(e + l);
+	float ln = dot(l, n);
+	float hn = dot(h, n);
+	float en = dot(e, n);
+	float eh = dot(e, h);
+
+	// geometric term
+	float g1 = (2.0 * hn * en) / eh;
+	float g2 = (2.0 * hn * ln) / eh;
+	float g = min(1.0, min(g1, g1));
+
+	// fresnel term
+	float f = pow(1.0 + en, fresnel);
+
+	// beckmann distribution
+	float d1 = 1.0 / (4.0 * roughnesssquare * pow(hn, 4));
+	float d2 = 1.0 - hn * hn;
+	float d3 = roughnesssquare * hn * hn;
+	float d = d1 * exp(-d2 / d3);
+
+	if(hn < 0.0) {
+		return 0.0;
+	}
+
+	return saturate(1.0 * (g * f * d) / en);
+}
+
+/*
+http://www.codemonsters.de/home/content.php?show=cubemaps
+
+Parameters i and n must be in world space if the environment map is in world
+space (which is normally the case).
+
+n is the normal vector and i is the incident vector (vector from eye position to
+surface position). This is the negative of the eye vector, that is used in
+most lighting equations.
+
+Like in SpecularPhong the reflection/refraction vector could be calculated in
+the vertex shader if there is no normal mapping.
+
+Cube maps (and volume maps likewise) in the DDS (Direct Draw Surface) format for
+FX Composer can be generated with the following tool.
+
+http://developer.nvidia.com/object/nv_texture_tools.html
+
+Refractive Indices (http://en.wikipedia.org/wiki/List_of_refractive_indices)
+
+Vacuum 1.0
+Air 1.000293
+Water 1.3330
+Diamond 2.419
+Water Ice 1.31
+Sapphire 1.762 – 1.778
+*/
+float4 Reflection(float3 i, float3 n, samplerCUBE environment) {
+	float3 reflection = reflect(i, n);
+	float4 reflectionColor = texCUBE(environment, reflection);
+	return reflectionColor;
+}
+
+/*
+If fresnelScale and fresnelOffset are zero, the result is reflection only.
+If fresnelOffset is one, the result is refraction only.
+*/
+float4 ReflectionRefraction(float3 i, float3 n, samplerCUBE environment, float refractionRatio, float fresnelOffset, float fresnelScale, float fresnelPower) {
+	float3 reflection = reflect(i, n);
+	float4 reflectionColor = texCUBE(environment, reflection);
+	i = normalize(i);
+	float3 refraction = refract(i, n, refractionRatio);
+	float4 refractionColor = texCUBE(environment, refraction);
+	float fresnelFactor = fresnelOffset + fresnelScale * pow(1.0 + dot(i, n), fresnelPower);
+	return lerp(reflectionColor, refractionColor, saturate(fresnelFactor));
+}
+
+/*
+Same as ReflectionRefraction but independently for R, G and B.
+The result is a chromatic dispersion effect.
+*/
+float4 ReflectionRefractionRGB(float3 i, float3 n, samplerCUBE environment, float refractionRatioR, float refractionRatioG, float refractionRatioB, float fresnelOffset, float fresnelScale, float fresnelPower) {
+	float3 reflection = reflect(i, n);
+	float4 reflectionColor = texCUBE(environment, reflection);
+	i = normalize(i);
+	float3 refractionR = refract(i, n, refractionRatioR);
+	float3 refractionG = refract(i, n, refractionRatioG);
+	float3 refractionB = refract(i, n, refractionRatioB);
+	float refractionColorR = texCUBE(environment, refractionR).r;
+	float refractionColorG = texCUBE(environment, refractionG).g;
+	float refractionColorB = texCUBE(environment, refractionB).b;
+	float4 refractionColor = float4(refractionColorR, refractionColorG, refractionColorB, 1.0);
+	float fresnelFactor = fresnelOffset + fresnelScale * pow(1.0 + dot(i, n), fresnelPower);
+	return lerp(reflectionColor, refractionColor, saturate(fresnelFactor));
+}
+
+/*
+Simplest possible global tone mapping operator.
+
+http://en.wikipedia.org/wiki/Tone_mapping
+*/
+float3 SimpleToneMapping(float3 color) {
+	return (color.rgb) / (color.rgb + 1.0);
+}

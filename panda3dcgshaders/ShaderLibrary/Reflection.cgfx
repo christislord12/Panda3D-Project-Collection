@@ -1,0 +1,166 @@
+
+/*
+Using shared texutre is too cumbersome.
+In this example only the plane is drawn correctly.
+Everything else has more or less random colors and
+is only there too create the illusion of a reflection.
+
+TODO make it more clearer why this shaders look a bit fancy
+and are not at usable in this form.
+*/
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Scene";
+	string ScriptOrder = "PostProcess";
+	string ScriptOutput = "Color";
+	string Script = "Technique=MyTechnique;";
+> = 0.8;
+
+float4x4 WorldViewProjection : WORLDVIEWPROJECTION <string UIWidget = "None";>;
+float4x4 ViewProjection : VIEWPROJECTION <string UIWidget = "None";>;
+float4x4 Projection : PROJECTION <string UIWidget = "None";>;
+float4x4 WorldView : WORLDVIEW <string UIWidget = "None";>;
+float4x4 World : WORLD <string UIWidget = "None";>;
+float4x4 View : VIEW <string UIWidget = "None";>;
+float2 ViewPortPixelSize : VIEWPORTPIXELSIZE < string UIWidget = "None";>;
+
+float ClearDepth <string UIWidget = "None";> = 1.0;
+float4 MakeClearColor <string UIWidget = "Color";> = { 0.5, 0.5, 1.0, 1.0 };
+float4 ApplyClearColor <string UIWidget = "Color";> = { 0.0, 0.5, 0.0, 1.0 };
+
+texture SceneColorTexture : RENDERCOLORTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "A8R8G8B8";
+	string UIWidget = "None";
+>;
+sampler2D SceneColorSampler = sampler_state {
+	texture = <SceneColorTexture>;
+	MagFilter = Linear;
+	MinFilter = Linear;
+	WrapS = ClampToBorder;
+	WrapT = ClampToBorder;
+};
+
+texture SceneDepthTexture : RENDERDEPTHSTENCILTARGET <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "D24S8";
+	string UIWidget = "None";
+>;
+
+texture TestTexture <
+	float2 ViewPortRatio = {1.0, 1.0};
+	string Format = "A8R8G8B8";
+>;
+sampler2D TestSampler = sampler_state {
+	texture = <TestTexture>;
+	MagFilter = Linear;
+	MinFilter = Linear;
+	WrapS = ClampToBorder;
+	WrapT = ClampToBorder;
+};
+
+struct VertexIn {
+	float4 positionObject : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float4 positionObject : TEXCOORD0;
+	float4 positionWorld : TEXCOORD1;
+	float4 positionEye : TEXCOORD2;
+	float4 test : TEXCOORD3;
+	float4 test2 : TEXCOORD4;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void MakeVertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionObject = i.positionObject;
+	o.positionWorld = mul(World, i.positionObject);
+	
+	float4 x = i.positionObject;
+	x = mul(World, x);
+	x.y *= -1;
+	x = mul(View, x);
+	x = mul(Projection, x);
+	o.positionClip = x;
+}
+
+void MakeFragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	if(i.positionWorld.y > 0.0) {
+		o.color = float4(i.positionObject.xyz * 0.5 + 0.5, 1.0);
+	} else {
+		// discard
+		o.color = float4(1.0, 0.0, 0.0, 1.0);
+	}
+}
+
+void ApplyVertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionObject = i.positionObject;
+	o.positionWorld = mul(World, i.positionObject);
+	o.positionEye = mul(WorldView, i.positionObject);
+	o.positionClip = mul(WorldViewProjection, i.positionObject);
+	
+	float4x4 scale = float4x4(
+		0.5, 0.0, 0.0, 0.5,
+		0.0, 0.5, 0.0, 0.5,
+		0.0, 0.0, 0.5, 0.5,
+		0.0, 0.0, 0.0, 1.0
+	);
+	o.test = mul(mul(scale, WorldViewProjection), i.positionObject);
+	
+	o.test2 = mul(WorldViewProjection, i.positionObject);
+}
+
+void ApplyFragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	if(abs(i.positionWorld.y) > 1.0e-2) {
+		o.color = float4(i.positionObject.xyz * 0.5 + 0.5, 1.0);
+	} else {
+		o.color = tex2Dproj(SceneColorSampler, i.test) + 0.3;
+		//float4 q = (i.test2 * 0.05 + 0.5);
+		//o.color = tex2Dproj(SceneColorSampler, q.xyz);
+	}
+}
+
+technique MyTechnique < string Script =
+	"ClearSetDepth=ClearDepth;"
+	"RenderColorTarget0=SceneColorTexture;"
+	"RenderDepthStencilTarget=SceneDepthTexture;"
+	"ClearSetColor=MakeClearColor;"
+	"Clear=Color;"
+	"Clear=Depth;"
+	"Pass=MyMakePass;"
+	"RenderColorTarget0=;"
+	"RenderDepthStencilTarget=;"
+	"ClearSetColor=ApplyClearColor;"
+	"Clear=Color;"
+	"Clear=Depth;"
+	"Pass=MyApplyPass;";
+	> {
+	pass MyMakePass < string Script =
+		"Draw=Geometry;";
+	> {
+		CullFace = Front;
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile vp40 MakeVertexProgram();
+		FragmentProgram = compile fp40 MakeFragmentProgram();
+	}
+	pass MyApplyPass < string Script =
+		"Draw=Geometry;";
+	> {
+		CullFace = Back;
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile vp40 ApplyVertexProgram();
+		FragmentProgram = compile fp40 ApplyFragmentProgram();
+	}	
+}

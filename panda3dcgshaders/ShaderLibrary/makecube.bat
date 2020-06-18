@@ -1,0 +1,1 @@
+nvdxt -cubeMap -list makecube.txt -output cube.dds

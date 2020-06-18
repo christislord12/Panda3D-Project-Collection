@@ -1,0 +1,58 @@
+
+float Script : STANDARDSGLOBAL <
+	string UIWidget = "None";
+	string ScriptClass = "Object";
+	string ScriptOrder = "Standard";
+	string ScriptOutput = "Color";
+> = 0.8;
+
+float4x4 WorldViewProjection : WORLDVIEWPROJECTION <string UIWidget = "None";>;
+
+float ObjectVolumeLayer <string UIWidget = "Slider"; float UIMin = 0.0; float UIMax = 1.0; float UIStep = 0.01;> = 0.3f;
+
+texture VolumeTexture <>;
+sampler3D VolumeSampler = sampler_state {
+	Texture = <VolumeTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+};
+
+struct VertexIn {
+	float4 positionObject : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct VertexOutFragmentIn {
+	float4 positionClip : POSITION;
+	float2 texcoord : TEXCOORD0;
+};
+
+struct FragmentOut {
+	float4 color : COLOR;
+};
+
+void VertexProgram(in VertexIn i, out VertexOutFragmentIn o) {
+	o.positionClip = mul(WorldViewProjection, i.positionObject);
+	o.texcoord = i.texcoord;
+}
+
+/*
+The DDS format was primarily created for Direct3D/DirectDraw. The problem is
+that with OpenGL everything is inverted. One effect is, that 2D textured are
+mirrored. Seems that another effect is that in 3D textures the third coordinate
+is mirrored likewise.
+*/
+void FragmentProgram(in VertexOutFragmentIn i, out FragmentOut o) {
+	o.color = tex3D(VolumeSampler, float3(i.texcoord, ObjectVolumeLayer));
+}
+
+technique MyTechnique {
+	pass MyPass {
+		CullFaceEnable = true;
+		DepthTestEnable = true;
+		DepthMask = true;
+		BlendEnable = false;
+		VertexProgram = compile vp40 VertexProgram();
+		FragmentProgram = compile fp40 FragmentProgram();
+	}
+}
