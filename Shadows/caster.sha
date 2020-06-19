@@ -1,0 +1,48 @@
+//Cg
+
+//pack the depth in a 32-bit rgba color
+float4 mapDepthToARGB32(const float value)
+{
+    const float4 bitSh = float4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
+    const float4 mask = float4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
+    float4 res = frac(value * bitSh);
+    res -= res.xxyz * mask;
+    return res;
+}
+
+
+void vshader(float4 vtx_position : POSITION,
+             uniform float4x4 mat_modelproj,
+             uniform float4 k_scale,
+	         out float4 l_position : POSITION,
+             out float4 l_pos : TEXCOORD0
+             )
+{
+
+  float4 position = vtx_position * k_scale;
+  l_pos = mul(mat_modelproj, position);
+  //l_pos = l_pos/l_pos.w;
+  
+  
+  float l = length(l_pos.xyz);
+  l_pos = l_pos/l;
+  
+  l_pos.z = l_pos.z + 1;
+  l_pos.x = l_pos.x / l_pos.z;
+  l_pos.y = l_pos.y / l_pos.z;
+
+  l_pos.z = (l - 0.1)/(200.0-0.1);
+  l_pos.w = 1;
+  
+  l_position = l_pos;
+
+  
+}
+
+void fshader(in float4 l_pos : TEXCOORD0,
+             out float4 o_color:COLOR)
+{
+  float z = (l_pos.z / l_pos.w) * 0.5 + 0.5;
+  o_color = float4(z,z,z,1);
+  //o_color = mapDepthToARGB32(l_pos.z);
+}
